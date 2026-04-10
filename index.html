@@ -859,6 +859,7 @@ function renderApp() {
   const navGerente = tipo === 'gerente' ? `
     <button class="nav-item" data-screen="dashboard" onclick="showScreen('dashboard')"><span class="ni">📊</span>Painel</button>
     <button class="nav-item" data-screen="equipe" onclick="showScreen('equipe')"><span class="ni">👥</span>Equipe</button>
+    <button class="nav-item" data-screen="banco" onclick="showScreen('banco')"><span class="ni">⏳</span>Banco</button>
     <button class="nav-item" data-screen="relatorio" onclick="showScreen('relatorio')"><span class="ni">📋</span>Relatório</button>
     <button class="nav-item" data-screen="log" onclick="showScreen('log')"><span class="ni">📝</span>Log</button>
   ` : `
@@ -881,12 +882,13 @@ function renderApp() {
     </div>
     <div class="app-content" id="app-content"></div>
     <nav class="app-nav">
-      <button class="nav-item active" data-screen="ponto" onclick="showScreen('ponto')"><span class="ni">⏰</span>Ponto</button>
+      ${tipo === 'gerente' ? '' : `<button class="nav-item active" data-screen="ponto" onclick="showScreen('ponto')"><span class="ni">⏰</span>Ponto</button>`}
       ${navGerente}
     </nav>`;
-  showScreen('ponto');
+  showScreen(tipo === 'gerente' ? 'dashboard' : 'ponto');
   startClock();
   requestNotifPermission();
+  if (tipo === 'gerente') iniciarListenerGerente();
 }
 
 window.doLogout = async function() {
@@ -908,11 +910,17 @@ window.showScreen = async function(id) {
   </div>`;
   try {
     let html = '';
-    if (id === 'ponto') html = await buildPontoScreen();
+    if (id === 'ponto') {
+      const emFerias = await isDiaFerias(currentUser.uid, getToday());
+      if (emFerias && currentProfile.tipo === 'funcionario') html = await buildFeriasScreen();
+      else html = await buildPontoScreen();
+    }
+    else if (id === 'ferias') html = await buildFeriasScreen();
     else if (id === 'historico') html = await buildHistoricoScreen(currentUser.uid);
     else if (id === 'relatorio') html = await buildRelatorioScreen();
     else if (id === 'dashboard') html = await buildDashboard();
     else if (id === 'equipe') html = buildEquipeScreen();
+    else if (id === 'banco') html = await buildBancoHoras();
     else if (id === 'log') html = await buildLogScreen();
     content.innerHTML = `<div class="screen active" id="screen-${id}">${html}</div>`;
     startClock();
@@ -1084,7 +1092,7 @@ async function buildDashboard() {
     const horas = temSaida ? calcHoras(ur) : calcHorasLive(ur);
     const jornada = u.jornada || 8;
     const extra = horas !== null && horas > jornada;
-    html += `<div class="func-card">
+    html += `<div class="func-card" onclick="openFuncDetail('${u.id}')" style="cursor:pointer">
       <div class="func-card-top">
         <div class="func-avatar">${u.nome.charAt(0).toUpperCase()}</div>
         <div>
@@ -1102,7 +1110,7 @@ async function buildDashboard() {
   if (ausentes.length) {
     html += `<div class="section-title" style="margin-top:16px">⚠️ Ausentes hoje</div>`;
     ausentes.forEach(u => {
-      html += `<div class="func-card">
+      html += `<div class="func-card" onclick="openFuncDetail('${u.id}')" style="cursor:pointer">
         <div class="func-card-top">
           <div class="func-avatar" style="opacity:.5">${u.nome.charAt(0).toUpperCase()}</div>
           <div>
@@ -1345,6 +1353,303 @@ async function requestNotifPermission() {
     const p = await Notification.requestPermission();
     notifPermission = p === 'granted';
   }
+}
+
+// =============================================
+// FÉRIAS & JUSTIFICATIVAS
+// =============================================
+async function getFeriasFunc(uid) {
+  const snap = await getDocs(query(collection(db, 'ferias'), where('userId', '==', uid)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(f => !f.excluido);
+}
+
+async function getJustificativasFunc(uid) {
+  const snap = await getDocs(query(collection(db, 'justificativas'), where('userId', '==', uid)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function isDiaFerias(uid, dataStr) {
+  const ferias = await getFeriasFunc(uid);
+  return ferias.some(f => dataStr >= f.inicio && dataStr <= f.fim);
+}
+
+async function isDiaJustificado(uid, dataStr) {
+  const justs = await getJustificativasFunc(uid);
+  return justs.find(j => j.data === dataStr) || null;
+}
+
+async function buildFeriasScreen() {
+  const ferias = await getFeriasFunc(currentUser.uid);
+  const hoje = getToday();
+  const periodo = ferias.find(f => hoje >= f.inicio && hoje <= f.fim);
+  const frases = [
+    "🌴 Aproveite cada momento do seu descanso merecido!",
+    "☀️ Recarregue as energias — o trabalho pode esperar!",
+    "🎉 Férias são sagradas! Descanse bastante!",
+    "🏖️ A vida manda trabalhar, mas as férias mandam descansar!",
+    "😎 Tá proibido pensar em trabalho. Aproveite!",
+  ];
+  const frase = frases[Math.floor(Math.random() * frases.length)];
+  const diasRestantes = periodo ? Math.ceil((new Date(periodo.fim + 'T12:00:00') - new Date()) / 86400000) : 0;
+  let periodoHtml = '';
+  if (periodo) {
+    let msg = diasRestantes > 1 ? `Ainda faltam ${diasRestantes} dias de descanso! 🎊` : diasRestantes === 1 ? 'Último dia de férias, aproveite! 🥂' : 'Férias encerrando hoje! 👋';
+    periodoHtml = `<div style="background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Seu período de férias</div>
+      <div style="font-size:15px;font-weight:800;color:var(--navy)">${formatDate(periodo.inicio)} até ${formatDate(periodo.fim)}</div>
+      <div style="font-size:13px;color:var(--gold);margin-top:5px;font-weight:600">${msg}</div>
+    </div>`;
+  }
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:28px;text-align:center">
+    <div style="font-size:72px;margin-bottom:14px">🏖️</div>
+    <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:10px">Você está de férias!</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;background:#fff;border-radius:14px;padding:14px 18px;border:2px solid var(--gold)">${frase}</div>
+    ${periodoHtml}
+    <div style="font-size:12px;color:var(--text3)">O registro de ponto está desativado durante as férias.</div>
+  </div>`;
+}
+
+window.abrirFerias = async function(uid, nome) {
+  closeModal();
+  const ferias = await getFeriasFunc(uid);
+  const lista = ferias.length === 0
+    ? '<p style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Nenhum período cadastrado</p>'
+    : ferias.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-bottom:6px;font-size:12px">
+        <span>🏖️ ${formatDate(f.inicio)} até ${formatDate(f.fim)}</span>
+        <button onclick="excluirFerias('${uid}','${f.id}')" style="border:none;background:transparent;color:var(--danger);font-size:16px;cursor:pointer">✕</button>
+      </div>`).join('');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">🏖️ Férias — ${nome}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="margin-bottom:16px">${lista}</div>
+    <div style="background:var(--cream);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:12px">Adicionar período</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Data início</label><input class="form-input" type="date" id="ferias-ini"></div>
+        <div class="form-group"><label class="form-label">Data fim</label><input class="form-input" type="date" id="ferias-fim"></div>
+      </div>
+      <button class="btn-primary" onclick="salvarFerias('${uid}','${nome}')">🏖️ Salvar Férias</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+window.salvarFerias = async function(uid, nome) {
+  const ini = document.getElementById('ferias-ini').value;
+  const fim = document.getElementById('ferias-fim').value;
+  if (!ini || !fim) { showToast('⚠️ Preencha as datas!'); return; }
+  if (fim < ini) { showToast('⚠️ Data fim deve ser após data início!'); return; }
+  await addDoc(collection(db, 'ferias'), { userId: uid, userName: nome, inicio: ini, fim: fim, criadoPor: currentUser.uid, criadoEm: serverTimestamp() });
+  await addDoc(collection(db, 'auditLog'), { quem: currentProfile.nome, quemId: currentUser.uid, acao: `Registrou férias de ${nome}: ${formatDate(ini)} a ${formatDate(fim)}`, quando: new Date().toISOString(), tipo: 'ferias', criadoEm: serverTimestamp() });
+  closeModal(); showToast('✅ Férias registradas!'); showScreen(currentScreen);
+};
+
+window.excluirFerias = async function(uid, feriasId) {
+  await updateDoc(doc(db, 'ferias', feriasId), { excluido: true });
+  closeModal(); showToast('Período de férias removido.'); showScreen(currentScreen);
+};
+
+window.abrirJustificativa = async function(uid, nome) {
+  closeModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">📝 Justificar Falta — ${nome}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Data da falta</label><input class="form-input" type="date" id="just-data" value="${getToday()}"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-select" id="just-tipo">
+        <option value="Atestado médico">🏥 Atestado médico</option>
+        <option value="Declaração">📄 Declaração</option>
+        <option value="Licença">📋 Licença</option>
+        <option value="Falta abonada">✅ Falta abonada</option>
+        <option value="Outro">📝 Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo / Observação</label>
+      <textarea class="form-input" id="just-motivo" placeholder="Descreva o motivo..." style="resize:vertical;min-height:80px"></textarea>
+    </div>
+    <button class="btn-primary" onclick="salvarJustificativa('${uid}','${nome}')">📝 Salvar Justificativa</button>
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+window.salvarJustificativa = async function(uid, nome) {
+  const data = document.getElementById('just-data').value;
+  const tipo = document.getElementById('just-tipo').value;
+  const motivo = document.getElementById('just-motivo').value.trim();
+  if (!data || !motivo) { showToast('⚠️ Preencha todos os campos!'); return; }
+  await addDoc(collection(db, 'justificativas'), { userId: uid, userName: nome, data, tipo, motivo, criadoPor: currentUser.uid, criadoEm: serverTimestamp() });
+  await addDoc(collection(db, 'auditLog'), { quem: currentProfile.nome, quemId: currentUser.uid, acao: `Justificou falta de ${nome} em ${formatDate(data)}: ${tipo} — ${motivo}`, quando: new Date().toISOString(), tipo: 'justificativa', criadoEm: serverTimestamp() });
+  closeModal(); showToast('✅ Falta justificada!'); showScreen(currentScreen);
+};
+
+// =============================================
+// EDIÇÃO DE PONTO
+// =============================================
+window.editRecord = function(recordId, horaAtual, tipo) {
+  closeModal();
+  const tipoLabels = { entrada: 'Entrada', 'inicio-intervalo': 'Início de Intervalo', 'fim-intervalo': 'Fim de Intervalo', saida: 'Saída' };
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">✏️ Editar Registro</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="background:var(--cream);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;border:1.5px solid var(--border)">
+      <strong>${tipoLabels[tipo] || tipo}</strong> — atualmente ${horaAtual}
+    </div>
+    <div class="form-group"><label class="form-label">Novo Horário</label>
+      <input class="form-input" type="time" id="edit-hora" value="${horaAtual.slice(0,5)}" step="60">
+    </div>
+    <div class="form-group"><label class="form-label">⚠️ Justificativa (obrigatória)</label>
+      <textarea class="form-input" id="edit-just" placeholder="Descreva o motivo da alteração..." style="resize:vertical;min-height:80px"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveEdit('${recordId}','${tipo}','${horaAtual}')">Salvar com Justificativa</button>
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+window.saveEdit = async function(recordId, tipo, horaOld) {
+  const novaHora = document.getElementById('edit-hora').value;
+  const just = document.getElementById('edit-just').value.trim();
+  if (!just) { showToast('⚠️ Justificativa é obrigatória!'); return; }
+  const tipoLabels = { entrada: 'Entrada', 'inicio-intervalo': 'Início de Intervalo', 'fim-intervalo': 'Fim de Intervalo', saida: 'Saída' };
+  const [h, m] = novaHora.split(':').map(Number);
+  const recRef = doc(db, 'registros', recordId);
+  const recSnap = await getDoc(recRef);
+  if (!recSnap.exists()) return;
+  const recData = recSnap.data();
+  const d = new Date(recData.data + 'T00:00:00'); d.setHours(h, m, 0, 0);
+  await updateDoc(recRef, { hora: novaHora + ':00', timestamp: d.getTime(), editado: true, editadoPor: currentUser.uid, editadoEm: new Date().toISOString(), justificativa: just });
+  await addDoc(collection(db, 'auditLog'), { quem: currentProfile.nome, quemId: currentUser.uid, acao: `Editou registro de ${tipoLabels[tipo] || tipo}: ${horaOld} → ${novaHora}:00`, justificativa: just, quando: new Date().toISOString(), tipo: 'edicao', criadoEm: serverTimestamp() });
+  closeModal(); showToast('✅ Registro atualizado!'); showScreen(currentScreen);
+};
+
+// =============================================
+// DETALHE DO FUNCIONÁRIO (MODAL)
+// =============================================
+window.openFuncDetail = async function(uid) {
+  const profSnap = await getDoc(doc(db, 'usuarios', uid));
+  if (!profSnap.exists()) return;
+  const user = profSnap.data();
+  const recs = await getUserTodayRecords(uid);
+  const tipoLabels = { entrada: 'Entrada', 'inicio-intervalo': 'Início de Intervalo', 'fim-intervalo': 'Fim de Intervalo', saida: 'Saída' };
+  const tipoEmoji = { entrada: '🌅', 'inicio-intervalo': '☕', 'fim-intervalo': '🔙', saida: '🌇' };
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <div class="modal-title">${user.nome}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">${user.cargo || 'Funcionário'} • Jornada: ${user.jornada || 8}h/dia</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn-rel" style="background:#eaf6f0;border:1.5px solid #a8d5bc;color:var(--green);flex:1" onclick="abrirFerias('${uid}','${user.nome}')">🏖️ Férias</button>
+      <button class="btn-rel" style="background:#fef8ea;border:1.5px solid var(--gold);color:var(--gold);flex:1" onclick="abrirJustificativa('${uid}','${user.nome}')">📝 Justificar Falta</button>
+    </div>
+    <div class="section-title" style="margin-bottom:10px">📍 Registros de Hoje</div>
+    ${recs.length === 0
+      ? '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px">Nenhum registro hoje.</p>'
+      : recs.map(r => `<div style="background:var(--cream);border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1.5px solid var(--border)">
+          <span style="font-size:20px">${tipoEmoji[r.tipo] || '⚪'}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:var(--navy)">${tipoLabels[r.tipo] || r.tipo}</div>
+            <div style="font-size:11px;color:var(--text3);font-family:monospace">${r.hora || formatTime(r.timestamp)}${r.editado ? ' · ✏️ Editado' : ''}</div>
+            ${r.endereco ? `<div style="font-size:10px;color:var(--text3)">📍 ${r.endereco}</div>` : ''}
+          </div>
+          <button style="padding:6px 11px;border-radius:8px;border:2px solid var(--gold);background:transparent;color:var(--gold);font-size:11px;font-weight:800;cursor:pointer" onclick="editRecord('${r.id}','${r.hora || '00:00:00'}','${r.tipo}')">✏️ Editar</button>
+        </div>`).join('')}
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+// =============================================
+// BANCO DE HORAS
+// =============================================
+async function calcBancoHoras(uid) {
+  const profSnap = await getDoc(doc(db, 'usuarios', uid));
+  const jornada = profSnap.exists() ? (profSnap.data().jornada || 8) : 8;
+  const snap = await getDocs(query(collection(db, 'registros'), where('userId', '==', uid)));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.timestamp - b.timestamp);
+  const days = {};
+  recs.forEach(r => { if (!days[r.data]) days[r.data] = []; days[r.data].push(r); });
+  let saldo = 0;
+  const detalhes = [];
+  Object.keys(days).sort().forEach(d => {
+    const h = calcHoras(days[d]);
+    if (h !== null) { const diff = h - jornada; saldo += diff; detalhes.push({ data: d, horas: h, diff }); }
+  });
+  return { saldo, detalhes, jornada };
+}
+
+async function buildBancoHoras() {
+  const snap = await getDocs(query(collection(db, 'usuarios'), where('tipo', '==', 'funcionario')));
+  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  let cards = '';
+  for (const u of users) {
+    const banco = await calcBancoHoras(u.id);
+    const saldo = banco.saldo;
+    const cor = saldo >= 0 ? 'var(--green)' : 'var(--danger)';
+    const saldoStr = (saldo >= 0 ? '+' : '') + fmtHoras(Math.abs(saldo));
+    cards += `<div class="func-card">
+      <div class="func-card-top">
+        <div class="func-avatar">${u.nome.charAt(0)}</div>
+        <div><div class="func-name">${u.nome}</div><div class="func-role">${u.cargo || 'Funcionário'} • Jornada: ${banco.jornada}h/dia</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div style="flex:1;text-align:center;background:${saldo >= 0 ? '#eaf6f0' : '#fdecea'};border-radius:8px;padding:8px">
+          <div style="font-size:16px;font-weight:800;color:${cor};font-family:monospace">${saldoStr}</div>
+          <div style="font-size:10px;color:var(--text3)">saldo banco</div>
+        </div>
+        <div style="flex:1;text-align:center;background:var(--cream);border-radius:8px;padding:8px">
+          <div style="font-size:16px;font-weight:800;color:var(--navy);font-family:monospace">${banco.detalhes.length}</div>
+          <div style="font-size:10px;color:var(--text3)">dias registrados</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  return `<div class="section-title">⏳ Banco de Horas</div>
+    <div class="alert-card info" style="margin-bottom:16px"><div class="alert-icon">ℹ️</div><div class="alert-text"><strong>Como funciona</strong><span>Positivo (+) = horas extras acumuladas. Negativo (−) = horas devidas.</span></div></div>
+    ${cards}
+    ${users.length === 0 ? '<div class="empty-state"><div class="es-icon">⏳</div><p>Nenhum funcionário cadastrado</p></div>' : ''}`;
+}
+
+// =============================================
+// LISTENER GERENTE (notificações em tempo real)
+// =============================================
+let gerenteListenerUnsub = null;
+let ultimosRegistrosConhecidos = {};
+
+function iniciarListenerGerente() {
+  if (gerenteListenerUnsub) gerenteListenerUnsub();
+  const hoje = getToday();
+  const q = query(collection(db, 'registros'), where('data', '==', hoje));
+  gerenteListenerUnsub = onSnapshot(q, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const rec = { id: change.doc.id, ...change.doc.data() };
+      if (ultimosRegistrosConhecidos[rec.id]) return;
+      ultimosRegistrosConhecidos[rec.id] = true;
+      if ((Date.now() - rec.timestamp) > 10000) return;
+      const nome = rec.userName || 'Funcionário';
+      const agora = new Date(rec.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const labels = { entrada: '🌅 Entrada registrada', 'inicio-intervalo': '☕ Intervalo iniciado', 'fim-intervalo': '🔙 Retornou do intervalo', saida: '🌇 Saída registrada' };
+      showToast(`${labels[rec.tipo] || '⏰ Ponto registrado'} — ${nome} às ${agora}`, 5000);
+      if (currentScreen === 'dashboard') setTimeout(() => showScreen('dashboard'), 1500);
+    });
+  });
 }
 
 // =============================================
