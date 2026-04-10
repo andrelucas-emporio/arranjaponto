@@ -1254,56 +1254,210 @@ window.gerarRelatorio = async function() {
     ? (document.getElementById('rel-user')?.value || currentUser.uid)
     : currentUser.uid;
   const el = document.getElementById('rel-result');
-  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">⏳ Carregando...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">⏳ Gerando relatório...</div>';
 
-  const inicio = new Date(ano, mes, 1).toISOString().split('T')[0];
-  const fim = new Date(ano, mes + 1, 0).toISOString().split('T')[0];
-  const snap = await getDocs(query(
-    collection(db, 'registros'),
-    where('userId', '==', uid),
-    where('data', '>=', inicio),
-    where('data', '<=', fim)
-  ));
-  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.data.localeCompare(b.data) || a.timestamp - b.timestamp);
+  try {
+    // Busca todos os registros do usuário e filtra localmente — sem índice composto
+    const snap = await getDocs(query(collection(db, 'registros'), where('userId', '==', uid)));
+    const inicio = `${ano}-${String(mes + 1).padStart(2,'0')}-01`;
+    const fim = `${ano}-${String(mes + 1).padStart(2,'0')}-${String(new Date(ano, mes + 1, 0).getDate()).padStart(2,'0')}`;
+    const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(r => r.data >= inicio && r.data <= fim)
+      .sort((a, b) => a.data.localeCompare(b.data) || a.timestamp - b.timestamp);
+
+    const userSnap = await getDoc(doc(db, 'usuarios', uid));
+    const user = userSnap.exists() ? userSnap.data() : { nome: 'Funcionário', jornada: 8 };
+    const jornada = user?.jornada || 8;
+
+    const grouped = {};
+    recs.forEach(r => { if (!grouped[r.data]) grouped[r.data] = []; grouped[r.data].push(r); });
+
+    let totalHoras = 0, totalDias = 0, totalExtra = 0;
+    const dias = Object.entries(grouped).map(([data, list]) => {
+      const h = calcHoras(list);
+      if (h !== null) { totalHoras += h; totalDias++; if (h > jornada) totalExtra += (h - jornada); }
+      return { data, h };
+    });
+
+    const mesesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    el.innerHTML = `
+      <div class="rel-card">
+        <div class="rel-header">
+          <div>
+            <div class="rel-name">${user?.nome || 'Funcionário'}</div>
+            <div class="rel-period">${mesesNome[mes]} ${ano} • Jornada: ${jornada}h/dia</div>
+          </div>
+          <button class="btn-rel print" onclick="imprimirRelatorioCompleto('${uid}',${mes},${ano})">🖨️ Imprimir PDF</button>
+        </div>
+        <div class="rel-stats">
+          <div class="rel-stat"><div class="rel-stat-val">${totalDias}</div><div class="rel-stat-label">Dias trab.</div></div>
+          <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalHoras)}</div><div class="rel-stat-label">Horas trab.</div></div>
+          <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalExtra)}</div><div class="rel-stat-label">Horas extra</div></div>
+        </div>
+      </div>
+      ${dias.map(({ data, h }) => `
+        <div class="hist-entry">
+          <div class="hist-dot entrada">📅</div>
+          <div>
+            <div class="hist-type">${formatDate(data)}</div>
+            <div class="hist-time">${h !== null ? fmtHoras(h) + (h > jornada ? ' ⚠️ extra' : '') : 'Incompleto'}</div>
+          </div>
+        </div>`).join('')}
+      ${!dias.length ? `<div class="alert-card info" style="margin-top:8px"><div class="alert-icon">📋</div><div class="alert-text"><strong>Nenhum registro neste período</strong><span>Clique em "Imprimir PDF" para gerar a folha em branco.</span></div></div>` : ''}`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">⚠️</div><p>Erro ao gerar relatório. Tente novamente.</p></div>`;
+    console.error(e);
+  }
+};
+
+function buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, periodoInicio, periodoFim, jornada) {
+  const bizNome = getBizNome();
+  return `
+    <style>
+      @page { size: A4 portrait; margin: 0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 0; background: #fff; }
+      .folha { width: 190mm; margin: 0 auto; padding: 10mm 0; font-family: Arial, sans-serif; font-size: 10pt; }
+      table { width: 100%; border-collapse: collapse; }
+      td, th { border: 0.5pt solid #333; padding: 2.5pt 4pt; }
+      .cab td { font-size: 9pt; }
+      .cab strong { font-size: 9pt; }
+      thead tr { background: #d8d8d8; }
+      th { font-size: 8.5pt; text-align: center; font-weight: 700; }
+      .dia-num { text-align: center; font-weight: 700; width: 22pt; }
+      .dia-sem { text-align: center; width: 22pt; }
+      .hora { text-align: center; font-family: 'Courier New', monospace; font-size: 9pt; width: 32pt; }
+      .extra-col { text-align: center; font-family: 'Courier New', monospace; font-size: 9pt; width: 28pt; }
+      .obs-col { font-size: 8pt; color: #555; }
+      .fds { color: #999; background: #fafafa; }
+      .dom { color: #c0392b; background: #fafafa; }
+      .trab { background: #fff; }
+      tfoot td { font-size: 9pt; font-weight: 700; background: #efefef; }
+      .assinaturas { margin-top: 20mm; display: flex; justify-content: space-between; }
+      .ass-box { text-align: center; width: 75mm; }
+      .ass-line { border-top: 0.5pt solid #333; padding-top: 3pt; font-size: 9pt; }
+      .ass-name { font-size: 8pt; color: #555; margin-top: 2pt; }
+      .rodape { font-size: 7pt; color: #aaa; text-align: center; margin-top: 8mm; }
+    </style>
+    <div class="folha">
+      <table class="cab" style="margin-bottom:0">
+        <tr>
+          <td colspan="2" style="font-weight:700;font-size:10pt">Folha de ponto individual de funcionários</td>
+          <td style="white-space:nowrap;font-weight:700">Período: ${periodoInicio} a ${periodoFim}</td>
+        </tr>
+        <tr><td style="width:90pt"><strong>Empresa:</strong></td><td colspan="2">${bizNome}</td></tr>
+        <tr>
+          <td><strong>Funcionário:</strong></td>
+          <td style="font-weight:700">${prof.nome}</td>
+          <td>CPF: ${prof.cpf || '—'}</td>
+        </tr>
+        <tr>
+          <td><strong>Cargo:</strong></td>
+          <td>${prof.cargo || '—'}</td>
+          <td>Admissão: ${formatDate(prof.admissao) || '—'}</td>
+        </tr>
+        <tr>
+          <td><strong>Horário:</strong></td>
+          <td colspan="2">Jornada de ${jornada}h diárias</td>
+        </tr>
+      </table>
+      <table style="margin-top:0">
+        <thead>
+          <tr>
+            <th rowspan="2" class="dia-num">Dia</th>
+            <th rowspan="2" class="dia-sem"></th>
+            <th colspan="4">Normal</th>
+            <th rowspan="2" class="extra-col">Extra</th>
+            <th rowspan="2" style="width:auto">Assinatura ou observações</th>
+          </tr>
+          <tr>
+            <th class="hora">Entrada</th>
+            <th class="hora">Ini.Int.</th>
+            <th class="hora">Fim.Int.</th>
+            <th class="hora">Saída</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" style="font-size:9pt">Total horas trabalhadas: <strong>${totalHoras.toFixed(1)}h</strong></td>
+            <td colspan="2" style="font-size:9pt">Horas extras: <strong>${totalExtras.toFixed(1)}h</strong></td>
+            <td colspan="3" style="font-size:9pt">Dias trabalhados: <strong>${diasTrab}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="assinaturas">
+        <div style="font-size:9pt">Data: ______ / ______ / __________</div>
+        <div class="ass-box">
+          <div class="ass-line">Assinatura do Responsável</div>
+          <div class="ass-name">${bizNome}</div>
+        </div>
+        <div class="ass-box">
+          <div class="ass-line">Assinatura do Funcionário</div>
+          <div class="ass-name">${prof.nome}</div>
+        </div>
+      </div>
+      <div class="rodape">Gerado em ${new Date().toLocaleString('pt-BR')} · ArranjoPonto · ${bizNome}</div>
+    </div>`;
+}
+
+window.imprimirRelatorioCompleto = async function(uid, mes, ano) {
   const userSnap = await getDoc(doc(db, 'usuarios', uid));
-  const user = userSnap.data();
-  const jornada = user?.jornada || 8;
+  const prof = userSnap.exists() ? userSnap.data() : { nome: 'Funcionário', jornada: 8 };
+  const jornada = prof.jornada || 8;
 
-  const grouped = {};
-  recs.forEach(r => { if (!grouped[r.data]) grouped[r.data] = []; grouped[r.data].push(r); });
+  const snap = await getDocs(query(collection(db, 'registros'), where('userId', '==', uid)));
+  const inicio = `${ano}-${String(mes + 1).padStart(2,'0')}-01`;
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const fim = `${ano}-${String(mes + 1).padStart(2,'0')}-${String(diasNoMes).padStart(2,'0')}`;
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(r => r.data >= inicio && r.data <= fim)
+    .sort((a, b) => a.timestamp - b.timestamp);
 
-  let totalHoras = 0, totalDias = 0, totalExtra = 0;
-  const dias = Object.entries(grouped).map(([data, list]) => {
-    const h = calcHoras(list);
-    if (h !== null) { totalHoras += h; totalDias++; if (h > jornada) totalExtra += (h - jornada); }
-    return { data, h };
-  });
+  const days = {};
+  recs.forEach(r => { if (!days[r.data]) days[r.data] = []; days[r.data].push(r); });
 
-  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  el.innerHTML = `
-    <div class="rel-card">
-      <div class="rel-header">
-        <div>
-          <div class="rel-name">${user?.nome || 'Funcionário'}</div>
-          <div class="rel-period">${meses[mes]} ${ano} • Jornada: ${jornada}h/dia</div>
-        </div>
-        <button class="btn-rel print" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
-      </div>
-      <div class="rel-stats">
-        <div class="rel-stat"><div class="rel-stat-val">${totalDias}</div><div class="rel-stat-label">Dias trab.</div></div>
-        <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalHoras)}</div><div class="rel-stat-label">Horas trab.</div></div>
-        <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalExtra)}</div><div class="rel-stat-label">Horas extra</div></div>
-      </div>
-    </div>
-    ${dias.map(({ data, h }) => `
-      <div class="hist-entry">
-        <div class="hist-dot entrada">📅</div>
-        <div>
-          <div class="hist-type">${formatDate(data)}</div>
-          <div class="hist-time">${h !== null ? fmtHoras(h) + (h > jornada ? ' ⚠️ extra' : '') : 'Incompleto'}</div>
-        </div>
-      </div>`).join('')}
-    ${!dias.length ? `<div class="empty-state"><div class="es-icon">📋</div><p>Nenhum registro neste período.</p></div>` : ''}`;
+  const diasSem = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const periodoInicio = `01/${String(mes+1).padStart(2,'0')}/${ano}`;
+  const periodoFim = `${diasNoMes}/${String(mes+1).padStart(2,'0')}/${ano}`;
+
+  let totalHoras = 0, totalExtras = 0, diasTrab = 0, rows = '';
+
+  for (let d = 1; d <= diasNoMes; d++) {
+    const dataStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const diaSem = diasSem[new Date(dataStr + 'T12:00:00').getDay()];
+    const isDom = new Date(dataStr + 'T12:00:00').getDay() === 0;
+    const isSab = new Date(dataStr + 'T12:00:00').getDay() === 6;
+    const dayRecs = (days[dataStr] || []).sort((a, b) => a.timestamp - b.timestamp);
+    const entrada = dayRecs.find(r => r.tipo === 'entrada');
+    const iniInt = dayRecs.find(r => r.tipo === 'inicio-intervalo');
+    const fimInt = dayRecs.find(r => r.tipo === 'fim-intervalo');
+    const saida = dayRecs.find(r => r.tipo === 'saida');
+    const h = calcHoras(dayRecs);
+    if (h !== null) { totalHoras += h; diasTrab++; if (h > jornada) totalExtras += (h - jornada); }
+    const extraH = (h !== null && h > jornada) ? (h - jornada).toFixed(1) + 'h' : '';
+    const rowClass = isDom ? 'dom' : isSab ? 'fds' : dayRecs.length > 0 ? 'trab' : '';
+    const semCor = isDom ? '#c0392b' : isSab ? '#888' : '#333';
+    const obs = dayRecs.some(r => r.editado) ? 'Editado' : (extraH ? 'Extra: ' + extraH : '');
+    rows += `<tr class="${rowClass}">
+      <td class="dia-num">${String(d).padStart(2,'0')}</td>
+      <td class="dia-sem" style="color:${semCor}">${diaSem}</td>
+      <td class="hora">${entrada ? (entrada.hora || '').slice(0,5) : ''}</td>
+      <td class="hora">${iniInt ? (iniInt.hora || '').slice(0,5) : ''}</td>
+      <td class="hora">${fimInt ? (fimInt.hora || '').slice(0,5) : ''}</td>
+      <td class="hora">${saida ? (saida.hora || '').slice(0,5) : ''}</td>
+      <td class="extra-col">${extraH}</td>
+      <td class="obs-col">${obs}</td>
+    </tr>`;
+  }
+
+  const html = buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, periodoInicio, periodoFim, jornada);
+  const printWin = window.open('', '_blank');
+  printWin.document.write('<html><head><title>Folha de Ponto</title></head><body>' + html + '</body></html>');
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 600);
 };
 
 window.imprimirRelatorio = function() { window.print(); };
@@ -1312,18 +1466,24 @@ window.imprimirRelatorio = function() { window.print(); };
 // LOG
 // =============================================
 async function buildLogScreen() {
-  const snap = await getDocs(query(collection(db, 'auditLog')));
-  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.quando) - new Date(a.quando));
-  if (!logs.length) return `<div class="empty-state"><div class="es-icon">📝</div><p>Nenhum registro no log.</p></div>`;
-  let html = `<div class="section-title">📝 Log de Atividades</div>`;
-  logs.slice(0, 50).forEach(l => {
-    html += `<div class="log-entry">
-      <div class="log-who">${l.quem || 'Sistema'}</div>
-      <div class="log-what">${l.acao || l.mensagem || JSON.stringify(l)}</div>
-      <div class="log-when">${l.quando ? new Date(l.quando).toLocaleString('pt-BR') : ''}</div>
-    </div>`;
-  });
-  return html;
+  try {
+    const snap = await getDocs(collection(db, 'auditLog'));
+    const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => new Date(b.quando || 0) - new Date(a.quando || 0));
+    if (!logs.length) return `<div class="section-title">📝 Log de Atividades</div><div class="empty-state"><div class="es-icon">📝</div><p>Nenhuma atividade registrada ainda.</p></div>`;
+    let html = `<div class="section-title">📝 Log de Atividades</div>`;
+    logs.slice(0, 80).forEach(l => {
+      html += `<div class="log-entry">
+        <div class="log-who">${l.quem || 'Sistema'}</div>
+        <div class="log-what">${l.acao || '—'}${l.justificativa ? ` — <em>"${l.justificativa}"</em>` : ''}</div>
+        <div class="log-when">${l.quando ? new Date(l.quando).toLocaleString('pt-BR') : ''}</div>
+      </div>`;
+    });
+    return html;
+  } catch(e) {
+    console.error(e);
+    return `<div class="section-title">📝 Log de Atividades</div><div class="empty-state"><div class="es-icon">⚠️</div><p>Erro ao carregar o log.</p></div>`;
+  }
 }
 
 // =============================================
