@@ -1453,11 +1453,17 @@ window.imprimirRelatorioCompleto = async function(uid, mes, ano) {
   }
 
   const html = buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, periodoInicio, periodoFim, jornada);
-  const printWin = window.open('', '_blank');
-  printWin.document.write('<html><head><title>Folha de Ponto</title></head><body>' + html + '</body></html>');
-  printWin.document.close();
-  printWin.focus();
-  setTimeout(() => { printWin.print(); }, 600);
+
+  // Usa iframe oculto para evitar bloqueio de popup do navegador
+  let iframe = document.getElementById('print-iframe');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'print-iframe';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;';
+    document.body.appendChild(iframe);
+  }
+  iframe.onload = () => { iframe.contentWindow.focus(); iframe.contentWindow.print(); };
+  iframe.srcdoc = '<html><head><title>Folha de Ponto</title></head><body>' + html + '</body></html>';
 };
 
 window.imprimirRelatorio = function() { window.print(); };
@@ -1468,15 +1474,16 @@ window.imprimirRelatorio = function() { window.print(); };
 async function buildLogScreen() {
   try {
     const snap = await getDocs(collection(db, 'auditLog'));
+    if (!snap.docs.length) return `<div class="section-title">📝 Log de Atividades</div><div class="empty-state"><div class="es-icon">📝</div><p>Nenhuma atividade registrada ainda.</p></div>`;
     const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => new Date(b.quando || 0) - new Date(a.quando || 0));
-    if (!logs.length) return `<div class="section-title">📝 Log de Atividades</div><div class="empty-state"><div class="es-icon">📝</div><p>Nenhuma atividade registrada ainda.</p></div>`;
+      .sort((a, b) => (b.quando || '') > (a.quando || '') ? 1 : -1);
     let html = `<div class="section-title">📝 Log de Atividades</div>`;
     logs.slice(0, 80).forEach(l => {
+      const quando = l.quando ? new Date(l.quando).toLocaleString('pt-BR') : '—';
       html += `<div class="log-entry">
         <div class="log-who">${l.quem || 'Sistema'}</div>
-        <div class="log-what">${l.acao || '—'}${l.justificativa ? ` — <em>"${l.justificativa}"</em>` : ''}</div>
-        <div class="log-when">${l.quando ? new Date(l.quando).toLocaleString('pt-BR') : ''}</div>
+        <div class="log-what">${l.acao || l.mensagem || '—'}${l.justificativa ? ` — <em>"${l.justificativa}"</em>` : ''}</div>
+        <div class="log-when">${quando}</div>
       </div>`;
     });
     return html;
