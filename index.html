@@ -1427,7 +1427,7 @@ function buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, peri
         <tr>
           <td><strong>Cargo:</strong></td>
           <td>${prof.cargo || '—'}</td>
-          <td>Admissão: ${formatDate(prof.admissao) || '—'}</td>
+          <td>Admissão: ${prof.admissao ? formatDate(prof.admissao) : '—'}</td>
         </tr>
         <tr>
           <td><strong>Horário:</strong></td>
@@ -1922,7 +1922,7 @@ window.printRelatorio = async function(uid, mesOffset=0) {
     const ex=(h!==null&&h>jornada)?(h-jornada).toFixed(1)+'h':'';
     const rc=isDom?'dom':isSab?'fds':dr.length>0?'trab':'';
     const sc=isDom?'#c0392b':isSab?'#888':'#333';
-    rows+=`<tr class="${rc}"><td class="dia-num">${String(d).padStart(2,'0')}</td><td class="dia-sem" style="color:${sc}">${diaSem}</td><td class="hora">${en?en.hora.slice(0,5):''}</td><td class="hora">${ii?ii.hora.slice(0,5):''}</td><td class="hora">${fi?fi.hora.slice(0,5):''}</td><td class="hora">${sa?sa.hora.slice(0,5):''}</td><td class="extra-col">${ex}</td><td class="obs-col">${dr.some(r=>r.editado)?'Editado':ex?'Extra: '+ex:''}</td></tr>`;
+    rows+=`<tr class="${rc}"><td class="dia-num">${String(d).padStart(2,'0')}</td><td class="dia-sem" style="color:${sc}">${diaSem}</td><td class="hora">${en?(en?.hora||"").slice(0,5):''}</td><td class="hora">${ii?(ii?.hora||"").slice(0,5):''}</td><td class="hora">${fi?(fi?.hora||"").slice(0,5):''}</td><td class="hora">${sa?(sa?.hora||"").slice(0,5):''}</td><td class="extra-col">${ex}</td><td class="obs-col">${dr.some(r=>r.editado)?'Editado':ex?'Extra: '+ex:''}</td></tr>`;
   }
 
   document.getElementById('print-area').innerHTML=`<style>
