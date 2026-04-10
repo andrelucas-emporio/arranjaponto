@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ArranjaPonto</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ArranjaPonto">
+<meta name="theme-color" content="#0d1b2e">
+<meta name="mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0d1b2e;
+  --navy2: #162440;
+  --navy3: #1e3055;
+  --gold: #c8900a;
+  --gold2: #f0b429;
+  --gold3: #ffd060;
+  --cream: #fdf8ee;
+  --cream2: #f5edda;
+  --border: #e2d5b8;
+  --text: #0d1b2e;
+  --text2: #3a4e6a;
+  --text3: #7a8fa8;
+  --green: #1a6b3a;
+  --green2: #22863f;
+  --danger: #c0392b;
+  --warn: #d97706;
+  --surface: #ffffff;
+  --bg: #f7f2e8;
+  --shadow: 0 2px 16px rgba(13,27,46,0.10);
+  --shadow-lg: 0 8px 32px rgba(13,27,46,0.18);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#app {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+/* LOADING */
+.loading-screen {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: linear-gradient(170deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
+  gap: 18px;
+}
+.loading-logo-wrap {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: rgba(200,144,10,0.15);
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  animation: pulse-ring 2s infinite;
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,144,10,0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(200,144,10,0); }
+}
+.loading-logo-icon { font-size: 44px; }
+.loading-brand { color: var(--gold2); font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+.loading-sub { color: rgba(253,248,238,0.4); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+.loading-dots { display: flex; gap: 6px; }
+.loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: dot-pulse 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+
+/* ONBOARDING */
+.onboard-screen {
+  flex: 1; display: flex; flex-direction: column;
+  background: linear-gradient(170deg, var(--navy) 0%, var(--navy2) 50%, var(--navy3) 100%);
+  position: relative; overflow: hidden;
+}
+.onboard-deco {
+  position: absolute; width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,144,10,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.onboard-deco.d1 { top: -100px; right: -80px; }
+.onboard-deco.d2 { bottom: -100px; left: -80px; }
+.onboard-top {
+  padding: 48px 32px 24px; position: relative; z-index: 1; text-align: center;
+}
+.onboard-icon-wrap {
+  width: 80px; height: 80px; margin: 0 auto 16px;
+  border-radius: 50%; background: rgba(200,144,10,0.15);
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+  box-shadow: 0 0 0 8px rgba(200,144,10,0.08);
+}
+.onboard-brand { color: var(--cream); font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+.onboard-brand span { color: var(--gold2); }
+.onboard-tagline { color: rgba(253,248,238,0.5); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+.onboard-step-label {
+  color: var(--gold2); font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; margin-top: 20px;
+}
+.onboard-card {
+  background: var(--surface); border-radius: 28px 28px 0 0;
+  padding: 28px 24px 40px; flex: 1; position: relative; z-index: 1;
+  border-top: 3px solid var(--gold);
+}
+.onboard-card-title {
+  font-size: 18px; font-weight: 800; color: var(--navy);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+}
+.onboard-card-sub { font-size: 13px; color: var(--text3); margin-bottom: 22px; line-height: 1.5; }
+.form-label {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  letter-spacing: .7px; text-transform: uppercase; margin-bottom: 7px; display: block;
+}
+.form-input {
+  width: 100%; padding: 13px 16px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 15px;
+  color: var(--text); background: var(--cream); transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,144,10,0.12); }
+.form-group { margin-bottom: 16px; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 5px; }
+.btn-primary {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  color: var(--cream); border: none; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+  transition: all .2s; letter-spacing: .5px;
+  border-bottom: 3px solid rgba(0,0,0,0.3);
+  position: relative; overflow: hidden;
+}
+.btn-primary::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(200,144,10,0.15) 100%);
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(1px); border-bottom-width: 1px; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-secondary {
+  width: 100%; padding: 13px; background: transparent;
+  border: 2px solid var(--navy); color: var(--navy);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;
+  font-weight: 700; cursor: pointer; transition: .2s; margin-top: 8px;
+}
+.btn-secondary:hover { background: var(--navy); color: var(--cream); }
+.form-error {
+  background: #fdf0ee; border: 1.5px solid #f5c6c2;
+  border-radius: 8px; padding: 10px 14px; color: var(--danger);
+  font-size: 13px; margin-bottom: 14px; display: none;
+}
+.logo-upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm);
+  padding: 20px; text-align: center; cursor: pointer;
+  transition: .2s; background: var(--cream); position: relative; overflow: hidden;
+}
+.logo-upload-area:hover { border-color: var(--gold); background: var(--cream2); }
+.logo-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.logo-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px; display: block; border: 3px solid var(--gold); }
+.logo-upload-text { font-size: 13px; color: var(--text3); font-weight: 600; }
+.logo-upload-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.step-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: .3s; }
+.step-dot.active { background: var(--gold); width: 24px; border-radius: 4px; }
+.step-dot.done { background: var(--green); }
+
+/* LOGIN */
+.login-screen {
+  flex: 1; display: flex; flex-direction: column;
+  background: linear-gradient(170deg, var(--navy) 0%, var(--navy2) 50%, var(--navy3) 100%);
+  position: relative; overflow: hidden;
+}
+.login-deco { position: absolute; opacity: .06; font-size: 120px; pointer-events: none; }
+.login-deco.d1 { top: -10px; right: -20px; transform: rotate(15deg); }
+.login-deco.d2 { top: 80px; left: -30px; transform: rotate(-10deg); }
+.login-glow {
+  position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,144,10,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.login-top { padding: 52px 32px 24px; position: relative; z-index: 1; text-align: center; }
+.login-logo-wrap {
+  width: 90px; height: 90px; margin: 0 auto 16px; border-radius: 50%;
+  background: rgba(200,144,10,0.12); border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center; font-size: 44px;
+  box-shadow: 0 4px 24px rgba(200,144,10,0.3), 0 0 0 8px rgba(200,144,10,0.08);
+}
+.login-logo-img {
+  width: 90px; height: 90px; margin: 0 auto 16px; border-radius: 50%;
+  object-fit: cover; border: 3px solid var(--gold);
+  box-shadow: 0 4px 24px rgba(200,144,10,0.3), 0 0 0 8px rgba(200,144,10,0.08);
+  display: block;
+}
+.login-biz-name { color: var(--cream); font-size: 20px; font-weight: 800; letter-spacing: .5px; }
+.login-brand-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 6px; padding: 3px 10px; border-radius: 20px;
+  background: rgba(200,144,10,0.15); border: 1px solid rgba(200,144,10,0.3);
+}
+.login-brand-tag span { color: var(--gold2); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.login-form-card {
+  background: var(--surface); border-radius: 28px 28px 0 0;
+  padding: 28px 24px 40px; flex: 1; position: relative; z-index: 1;
+  border-top: 3px solid var(--gold);
+}
+.login-form-title {
+  font-size: 17px; font-weight: 800; color: var(--navy);
+  margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
+}
+
+/* HEADER */
+.app-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  padding: 14px 18px 12px; display: flex; align-items: center;
+  justify-content: space-between; border-bottom: 3px solid var(--gold);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-biz-icon {
+  width: 38px; height: 38px; border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--gold); flex-shrink: 0;
+  background: rgba(200,144,10,0.15);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.header-biz-img { width: 100%; height: 100%; object-fit: cover; }
+.header-name { color: var(--cream); font-size: 14px; font-weight: 800; }
+.header-role { color: rgba(253,248,238,0.5); font-size: 11px; }
+.btn-logout {
+  background: rgba(253,248,238,0.1); border: 1.5px solid rgba(253,248,238,0.2);
+  color: var(--cream); padding: 7px 12px; border-radius: 8px;
+  cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 700; transition: .2s;
+}
+.btn-logout:hover { background: rgba(253,248,238,0.2); }
+
+/* NAV */
+.app-nav {
+  background: var(--surface); border-top: 2px solid var(--border);
+  display: flex; position: sticky; bottom: 0; z-index: 100;
+}
+.nav-item {
+  flex: 1; padding: 10px 4px 8px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; cursor: pointer; border: none;
+  background: transparent; font-family: inherit; color: var(--text3);
+  transition: .2s; font-size: 10px; font-weight: 700;
+}
+.nav-item .ni { font-size: 20px; }
+.nav-item.active { color: var(--gold); }
+
+/* CONTENT */
+.app-content { flex: 1; overflow-y: auto; background: var(--bg); }
+.screen { display: none; padding: 18px; }
+.screen.active { display: block; }
+
+/* DATETIME CARD */
+.datetime-card {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
+  border-radius: var(--radius); padding: 22px 24px; text-align: center;
+  margin-bottom: 16px; position: relative; overflow: hidden;
+  border-bottom: 3px solid var(--gold);
+}
+.datetime-card::before {
+  content: ''; position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,144,10,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.dt-deco { font-size: 11px; color: rgba(253,248,238,0.4); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.dt-time {
+  color: var(--cream); font-size: 44px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 3px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.dt-date { color: rgba(253,248,238,0.6); font-size: 13px; margin-top: 4px; text-transform: capitalize; }
+.geo-info { font-size: 11px; color: rgba(253,248,238,0.45); margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+/* STATUS CARD */
+.status-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 14px 18px; margin-bottom: 16px;
+  border: 2px solid var(--border); display: flex; align-items: center; gap: 14px;
+}
+.status-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.status-text-main { font-size: 14px; font-weight: 800; color: var(--navy); }
+.status-text-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* PONTO BUTTONS */
+.ponto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-ponto {
+  padding: 20px 10px; border: 2.5px solid transparent;
+  border-radius: var(--radius); cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 800; display: flex; flex-direction: column;
+  align-items: center; gap: 8px; transition: all .2s; background: var(--surface);
+  border-bottom-width: 4px;
+}
+.btn-ponto .bp-icon { font-size: 28px; }
+.btn-ponto.entrada { border-color: var(--green); color: var(--green); }
+.btn-ponto.entrada:not(:disabled):hover { background: var(--green); color: #fff; }
+.btn-ponto.intervalo { border-color: var(--warn); color: var(--warn); }
+.btn-ponto.intervalo:not(:disabled):hover { background: var(--warn); color: #fff; }
+.btn-ponto.fim-int { border-color: var(--gold); color: var(--gold); }
+.btn-ponto.fim-int:not(:disabled):hover { background: var(--gold); color: #fff; }
+.btn-ponto.saida { border-color: var(--danger); color: var(--danger); }
+.btn-ponto.saida:not(:disabled):hover { background: var(--danger); color: #fff; }
+.btn-ponto:disabled { opacity: .25; cursor: not-allowed; }
+
+/* SECTION TITLE */
+.section-title {
+  font-size: 15px; font-weight: 800; color: var(--navy);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--border);
+}
+.section-title::before { content: ''; width: 4px; height: 18px; background: var(--gold); border-radius: 2px; }
+
+/* HIST */
+.hist-day-label {
+  font-size: 11px; font-weight: 800; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .7px; margin-bottom: 7px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hist-day-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.hist-entry {
+  background: var(--surface); border-radius: var(--radius-sm);
+  padding: 12px 15px; margin-bottom: 7px; display: flex; align-items: center;
+  gap: 12px; border: 1.5px solid var(--border);
+}
+.hist-dot {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.hist-dot.entrada { background: #eaf6ee; }
+.hist-dot.inicio-intervalo { background: #fef3e8; }
+.hist-dot.fim-intervalo { background: #fef8ea; }
+.hist-dot.saida { background: #fdecea; }
+.hist-type { font-size: 13px; font-weight: 700; color: var(--navy); }
+.hist-time { font-size: 12px; color: var(--text3); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+/* SUMMARY */
+.summary-card {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px;
+  display: flex; justify-content: space-around; border-bottom: 3px solid var(--gold);
+}
+.sum-item { text-align: center; }
+.sum-val { color: var(--cream); font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.sum-label { color: rgba(253,248,238,0.5); font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* FUNC CARD */
+.func-card {
+  background: var(--surface); border-radius: var(--radius); padding: 15px;
+  margin-bottom: 10px; border: 2px solid var(--border); cursor: pointer; transition: .2s;
+}
+.func-card:hover { border-color: var(--gold); box-shadow: var(--shadow); }
+.func-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.func-avatar {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  color: var(--gold2); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; flex-shrink: 0; border: 2px solid var(--gold);
+}
+.func-name { font-size: 14px; font-weight: 800; color: var(--navy); }
+.func-role { font-size: 12px; color: var(--text3); }
+.func-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge.ok { background: #eaf6f0; color: var(--green); }
+.badge.warn { background: #fef3e8; color: var(--warn); }
+.badge.danger { background: #fdecea; color: var(--danger); }
+.badge.gray { background: var(--cream); color: var(--text3); border: 1px solid var(--border); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(13,27,46,0.6);
+  z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+}
+.modal-box {
+  background: var(--surface); border-radius: 24px 24px 0 0;
+  width: 100%; max-width: 430px; padding: 26px 22px 36px;
+  max-height: 88vh; overflow-y: auto; animation: slideUp .3s ease;
+  border-top: 3px solid var(--gold);
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.modal-close {
+  float: right; background: var(--cream); border: 1.5px solid var(--border);
+  width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--text2);
+}
+.form-select {
+  width: 100%; padding: 13px 16px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 15px;
+  color: var(--text); background: var(--cream); outline: none;
+  transition: border-color .2s; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233a4e6a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+}
+.form-select:focus { border-color: var(--gold); }
+
+/* ALERT CARD */
+.alert-card { border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+.alert-card.warn { background: #fef8ea; border: 1.5px solid var(--gold); }
+.alert-card.success { background: #eaf6f0; border: 1.5px solid #a8d5bc; }
+.alert-card.info { background: #eaf0f8; border: 1.5px solid #a8c0e0; }
+.alert-icon { font-size: 18px; flex-shrink: 0; }
+.alert-text strong { display: block; font-weight: 800; color: var(--navy); }
+.alert-text span { color: var(--text2); font-size: 12px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--navy); color: var(--cream);
+  padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 700;
+  z-index: 9999; opacity: 0; transition: .3s; white-space: nowrap;
+  border-bottom: 2px solid var(--gold); max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text3); }
+.empty-state .es-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* REL CARD */
+.rel-card { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 2px solid var(--border); margin-bottom: 12px; }
+.rel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.rel-name { font-size: 14px; font-weight: 800; color: var(--navy); }
+.rel-period { font-size: 12px; color: var(--text3); }
+.rel-stats { display: flex; gap: 16px; }
+.rel-stat { text-align: center; }
+.rel-stat-val { font-size: 20px; font-weight: 800; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+.rel-stat-label { font-size: 10px; color: var(--text3); }
+.btn-rel { padding: 9px 14px; border-radius: 8px; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 800; transition: .2s; }
+.btn-rel.print { background: var(--navy); color: var(--cream); border-bottom: 2px solid rgba(0,0,0,0.3); }
+.btn-rel.print:hover { filter: brightness(1.1); }
+
+/* LOG */
+.log-entry { background: var(--surface); border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 7px; border: 1.5px solid var(--border); font-size: 12px; }
+.log-who { font-weight: 800; color: var(--gold); }
+.log-what { color: var(--text2); margin-top: 3px; line-height: 1.5; }
+.log-when { color: var(--text3); font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 4px; }
+
+/* UPSELL BANNER */
+.upsell-banner {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px;
+  border: 2px solid var(--gold); position: relative; overflow: hidden;
+}
+.upsell-banner::before {
+  content: '⚡'; position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%); font-size: 48px; opacity: .08;
+}
+.upsell-title { color: var(--gold2); font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+.upsell-text { color: rgba(253,248,238,0.7); font-size: 12px; line-height: 1.5; }
+.upsell-cta {
+  display: inline-block; margin-top: 10px; padding: 7px 14px;
+  background: var(--gold); color: var(--navy); border-radius: 8px;
+  font-size: 12px; font-weight: 800; cursor: pointer; border: none; font-family: inherit;
+  transition: .2s;
+}
+.upsell-cta:hover { background: var(--gold2); }
+
+/* BRAND FOOTER */
+.brand-footer {
+  text-align: center; padding: 12px; color: var(--text3); font-size: 11px;
+  border-top: 1px solid var(--border); background: var(--surface);
+}
+.brand-footer span { color: var(--gold); font-weight: 700; }
+
+#print-area { display: none; }
+@media print {
+  * { visibility: hidden; margin: 0; padding: 0; box-shadow: none !important; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { display: block !important; position: fixed; top: 0; left: 0; width: 210mm; min-height: 297mm; background: #fff; padding: 12mm 14mm; font-family: Arial, sans-serif; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="print-area"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, orderBy, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// =============================================
+// CONFIGURAÇÃO FIREBASE — SUBSTITUIR POR CLIENTE
+// =============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyA0s41bOJSZn-gqMKo2X7gi53TfTlR5bBI",
+  authDomain: "arranja-ponto-teste.firebaseapp.com",
+  projectId: "arranja-ponto-teste",
+  storageBucket: "arranja-ponto-teste.firebasestorage.app",
+  messagingSenderId: "333775850968",
+  appId: "1:333775850968:web:0e6ba3e0de3947908076ad"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+// =============================================
+// STATE
+// =============================================
+let currentUser = null;
+let currentProfile = null;
+let currentScreen = 'ponto';
+let clockInterval = null;
+let geoCoords = null;
+let geoAddress = null;
+let bizConfig = null; // nome, logo do negócio
+
+// =============================================
+// HELPERS
+// =============================================
+function showToast(msg, dur = 3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(d) {
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function calcHoras(recs) {
+  const entrada = recs.find(r => r.tipo === 'entrada');
+  const saida = recs.find(r => r.tipo === 'saida');
+  if (!entrada || !saida) return null;
+  let ms = saida.timestamp - entrada.timestamp;
+  const iniInt = recs.find(r => r.tipo === 'inicio-intervalo');
+  const fimInt = recs.find(r => r.tipo === 'fim-intervalo');
+  if (iniInt && fimInt) ms -= (fimInt.timestamp - iniInt.timestamp);
+  return ms / 3600000;
+}
+
+function calcHorasLive(recs) {
+  const entrada = recs.find(r => r.tipo === 'entrada');
+  if (!entrada) return null;
+  let ms = Date.now() - entrada.timestamp;
+  const iniInt = recs.find(r => r.tipo === 'inicio-intervalo');
+  const fimInt = recs.find(r => r.tipo === 'fim-intervalo');
+  if (iniInt && fimInt) ms -= (fimInt.timestamp - iniInt.timestamp);
+  else if (iniInt && !fimInt) ms -= (Date.now() - iniInt.timestamp);
+  return ms / 3600000;
+}
+
+function fmtHoras(h) {
+  if (h === null) return '--:--';
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2,'0')}h${String(mm).padStart(2,'0')}`;
+}
+
+async function getUserTodayRecords(uid) {
+  const snap = await getDocs(query(
+    collection(db, 'registros'),
+    where('userId', '==', uid),
+    where('data', '==', getToday()),
+    orderBy('timestamp', 'asc')
+  ));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadBizConfig() {
+  const snap = await getDoc(doc(db, 'config', 'negocio'));
+  if (snap.exists()) bizConfig = snap.data();
+  else bizConfig = { nome: 'Meu Negócio', logo: null };
+}
+
+function getBizLogo() {
+  return bizConfig?.logo || null;
+}
+
+function getBizNome() {
+  return bizConfig?.nome || 'Meu Negócio';
+}
+
+// =============================================
+// GEOLOCALIZAÇÃO
+// =============================================
+function requestGeo() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async pos => {
+    geoCoords = { lat: pos.coords.latitude.toFixed(5), lng: pos.coords.longitude.toFixed(5) };
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${geoCoords.lat}&lon=${geoCoords.lng}&format=json`);
+      const data = await r.json();
+      const addr = data.address;
+      geoAddress = [addr.road || addr.pedestrian, addr.suburb || addr.neighbourhood, addr.city || addr.town].filter(Boolean).join(', ');
+    } catch {}
+  }, () => {});
+}
+
+// =============================================
+// LOADING
+// =============================================
+function renderLoading() {
+  document.getElementById('app').innerHTML = `
+    <div class="loading-screen">
+      <div class="loading-logo-wrap"><div class="loading-logo-icon">⚡</div></div>
+      <div class="loading-brand">ArranjaPonto</div>
+      <div class="loading-sub">Carregando...</div>
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>`;
+}
+
+// =============================================
+// ONBOARDING — CONFIGURAÇÃO INICIAL
+// =============================================
+async function checkOnboarding() {
+  const snap = await getDoc(doc(db, 'config', 'negocio'));
+  return snap.exists();
+}
+
+let onboardStep = 1;
+let onboardData = { nome: '', logoBase64: null, adminEmail: '', adminSenha: '', adminNome: '' };
+
+function renderOnboarding() {
+  document.getElementById('app').innerHTML = `
+    <div class="onboard-screen">
+      <div class="onboard-deco d1"></div>
+      <div class="onboard-deco d2"></div>
+      <div class="onboard-top">
+        <div class="onboard-icon-wrap">⚡</div>
+        <div class="onboard-brand">Arranja<span>Ponto</span></div>
+        <div class="onboard-tagline">Configuração inicial</div>
+        <div class="onboard-step-label">Passo ${onboardStep} de 3</div>
+      </div>
+      <div class="onboard-card">
+        <div class="step-dots">
+          <div class="step-dot ${onboardStep >= 1 ? (onboardStep > 1 ? 'done' : 'active') : ''}"></div>
+          <div class="step-dot ${onboardStep >= 2 ? (onboardStep > 2 ? 'done' : 'active') : ''}"></div>
+          <div class="step-dot ${onboardStep >= 3 ? 'active' : ''}"></div>
+        </div>
+        <div id="onboard-step-content"></div>
+      </div>
+    </div>`;
+  renderOnboardStep();
+}
+
+function renderOnboardStep() {
+  const el = document.getElementById('onboard-step-content');
+  if (onboardStep === 1) {
+    el.innerHTML = `
+      <div class="onboard-card-title">🏪 Seu negócio</div>
+      <div class="onboard-card-sub">Vamos personalizar o app com as informações do seu negócio.</div>
+      <div class="form-error" id="ob-err"></div>
+      <div class="form-group">
+        <label class="form-label">Nome do negócio</label>
+        <input class="form-input" id="ob-nome" placeholder="Ex: Mercadinho da Ana" value="${onboardData.nome}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Logo (opcional)</label>
+        <div class="logo-upload-area" id="logo-area">
+          <input type="file" accept="image/*" id="logo-file" onchange="handleLogoUpload(event)">
+          ${onboardData.logoBase64
+            ? `<img src="${onboardData.logoBase64}" class="logo-preview">`
+            : `<div style="font-size:36px;margin-bottom:8px">📷</div>`}
+          <div class="logo-upload-text">${onboardData.logoBase64 ? 'Clique para trocar' : 'Toque para adicionar sua logo'}</div>
+          <div class="logo-upload-sub">PNG, JPG • Recomendado: quadrado</div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="obNext1()">Continuar →</button>`;
+  } else if (onboardStep === 2) {
+    el.innerHTML = `
+      <div class="onboard-card-title">👤 Conta do gestor</div>
+      <div class="onboard-card-sub">Crie a conta de acesso do responsável pelo negócio.</div>
+      <div class="form-error" id="ob-err"></div>
+      <div class="form-group">
+        <label class="form-label">Seu nome completo</label>
+        <input class="form-input" id="ob-admin-nome" placeholder="Ex: Ana Silva" value="${onboardData.adminNome}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail de acesso</label>
+        <input class="form-input" type="email" id="ob-admin-email" placeholder="seu@email.com" value="${onboardData.adminEmail}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input class="form-input" type="password" id="ob-admin-senha" placeholder="Mínimo 6 caracteres">
+        <div class="form-hint">Guarde bem esta senha — ela dará acesso total ao sistema.</div>
+      </div>
+      <button class="btn-primary" id="ob-btn2" onclick="obNext2()">Continuar →</button>
+      <button class="btn-secondary" onclick="onboardStep=1;renderOnboardStep()">← Voltar</button>`;
+  } else {
+    el.innerHTML = `
+      <div class="onboard-card-title">✅ Tudo pronto!</div>
+      <div class="onboard-card-sub">Revise as informações antes de finalizar a configuração.</div>
+      <div class="alert-card info" style="margin-bottom:16px">
+        <div class="alert-icon">🏪</div>
+        <div class="alert-text">
+          <strong>${onboardData.nome}</strong>
+          <span>Nome do negócio configurado</span>
+        </div>
+      </div>
+      <div class="alert-card info" style="margin-bottom:16px">
+        <div class="alert-icon">👤</div>
+        <div class="alert-text">
+          <strong>${onboardData.adminNome}</strong>
+          <span>${onboardData.adminEmail}</span>
+        </div>
+      </div>
+      <div class="alert-card warn" style="margin-bottom:20px">
+        <div class="alert-icon">💡</div>
+        <div class="alert-text">
+          <strong>Próximos passos</strong>
+          <span>Após finalizar, cadastre seus funcionários na aba "Equipe".</span>
+        </div>
+      </div>
+      <div class="form-error" id="ob-err"></div>
+      <button class="btn-primary" id="ob-btn3" onclick="obFinalizar()">🚀 Finalizar configuração</button>
+      <button class="btn-secondary" onclick="onboardStep=2;renderOnboardStep()">← Voltar</button>`;
+  }
+}
+
+window.handleLogoUpload = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    onboardData.logoBase64 = ev.target.result;
+    renderOnboardStep();
+  };
+  reader.readAsDataURL(file);
+};
+
+window.obNext1 = function() {
+  const nome = document.getElementById('ob-nome').value.trim();
+  const err = document.getElementById('ob-err');
+  if (!nome) { err.textContent = '⚠️ Digite o nome do negócio.'; err.style.display = 'block'; return; }
+  onboardData.nome = nome;
+  onboardStep = 2; renderOnboarding();
+};
+
+window.obNext2 = async function() {
+  const nome = document.getElementById('ob-admin-nome').value.trim();
+  const email = document.getElementById('ob-admin-email').value.trim();
+  const senha = document.getElementById('ob-admin-senha').value;
+  const err = document.getElementById('ob-err');
+  const btn = document.getElementById('ob-btn2');
+  if (!nome || !email || !senha) { err.textContent = '⚠️ Preencha todos os campos.'; err.style.display = 'block'; return; }
+  if (senha.length < 6) { err.textContent = '⚠️ A senha deve ter pelo menos 6 caracteres.'; err.style.display = 'block'; return; }
+  onboardData.adminNome = nome;
+  onboardData.adminEmail = email;
+  onboardData.adminSenha = senha;
+  onboardStep = 3; renderOnboarding();
+};
+
+window.obFinalizar = async function() {
+  const err = document.getElementById('ob-err');
+  const btn = document.getElementById('ob-btn3');
+  btn.disabled = true; btn.textContent = 'Configurando...';
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, onboardData.adminEmail, onboardData.adminSenha);
+    await setDoc(doc(db, 'usuarios', cred.user.uid), {
+      nome: onboardData.adminNome,
+      email: onboardData.adminEmail,
+      tipo: 'gerente',
+      jornada: 8,
+      criadoEm: new Date().toISOString()
+    });
+    await setDoc(doc(db, 'config', 'negocio'), {
+      nome: onboardData.nome,
+      logo: onboardData.logoBase64 || null,
+      criadoEm: new Date().toISOString()
+    });
+    showToast('✅ Configuração concluída!');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '🚀 Finalizar configuração';
+    err.textContent = '⚠️ Erro: ' + (e.message || 'Tente novamente.');
+    err.style.display = 'block';
+  }
+};
+
+// =============================================
+// LOGIN
+// =============================================
+function renderLogin() {
+  const logo = getBizLogo();
+  const nome = getBizNome();
+  document.getElementById('app').innerHTML = `
+    <div class="login-screen">
+      <div class="login-deco d1">⚡</div>
+      <div class="login-deco d2">🏪</div>
+      <div class="login-glow"></div>
+      <div class="login-top">
+        ${logo
+          ? `<img src="${logo}" class="login-logo-img" alt="Logo">`
+          : `<div class="login-logo-wrap">🏪</div>`}
+        <div class="login-biz-name">${nome}</div>
+        <div class="login-brand-tag"><span>⚡ ArranjaPonto</span></div>
+      </div>
+      <div class="login-form-card">
+        <div class="login-form-title">🔐 Entrar no sistema</div>
+        <div class="form-error" id="login-err"></div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input class="form-input" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input class="form-input" type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+        <div class="brand-footer" style="margin-top:24px;border:none">
+          Powered by <span>ArranjaTech</span>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('login-senha').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const err = document.getElementById('login-err');
+  const btn = document.getElementById('btn-login');
+  if (!email || !senha) { err.textContent = '⚠️ Preencha e-mail e senha.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  err.style.display = 'none';
+  try {
+    await signInWithEmailAndPassword(auth, email, senha);
+  } catch {
+    err.textContent = '⚠️ E-mail ou senha incorretos.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+};
+
+// =============================================
+// APP PRINCIPAL
+// =============================================
+function renderApp() {
+  const logo = getBizLogo();
+  const nome = getBizNome();
+  const tipo = currentProfile?.tipo;
+  const navGerente = tipo === 'gerente' ? `
+    <button class="nav-item" data-screen="dashboard" onclick="showScreen('dashboard')"><span class="ni">📊</span>Painel</button>
+    <button class="nav-item" data-screen="equipe" onclick="showScreen('equipe')"><span class="ni">👥</span>Equipe</button>
+    <button class="nav-item" data-screen="relatorio" onclick="showScreen('relatorio')"><span class="ni">📋</span>Relatório</button>
+    <button class="nav-item" data-screen="log" onclick="showScreen('log')"><span class="ni">📝</span>Log</button>
+  ` : `
+    <button class="nav-item" data-screen="historico" onclick="showScreen('historico')"><span class="ni">📅</span>Histórico</button>
+    <button class="nav-item" data-screen="relatorio" onclick="showScreen('relatorio')"><span class="ni">📋</span>Relatório</button>
+  `;
+
+  document.getElementById('app').innerHTML = `
+    <div class="app-header">
+      <div class="header-logo">
+        <div class="header-biz-icon">
+          ${logo ? `<img src="${logo}" class="header-biz-img">` : '🏪'}
+        </div>
+        <div>
+          <div class="header-name">${nome}</div>
+          <div class="header-role">${currentProfile?.nome || ''} • ${tipo === 'gerente' ? 'Gestor' : 'Funcionário'}</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+    <div class="app-content" id="app-content"></div>
+    <nav class="app-nav">
+      <button class="nav-item active" data-screen="ponto" onclick="showScreen('ponto')"><span class="ni">⏰</span>Ponto</button>
+      ${navGerente}
+    </nav>`;
+  showScreen('ponto');
+  startClock();
+  requestNotifPermission();
+}
+
+window.doLogout = async function() {
+  if (clockInterval) clearInterval(clockInterval);
+  await signOut(auth);
+};
+
+// =============================================
+// NAVEGAÇÃO
+// =============================================
+window.showScreen = async function(id) {
+  currentScreen = id;
+  document.querySelectorAll('.nav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.screen === id)
+  );
+  const content = document.getElementById('app-content');
+  content.innerHTML = `<div class="screen active" style="display:flex;align-items:center;justify-content:center;min-height:200px">
+    <div style="text-align:center;color:var(--text3)"><div style="font-size:32px">⏳</div><div style="margin-top:8px;font-size:13px">Carregando...</div></div>
+  </div>`;
+  try {
+    let html = '';
+    if (id === 'ponto') html = await buildPontoScreen();
+    else if (id === 'historico') html = await buildHistoricoScreen(currentUser.uid);
+    else if (id === 'relatorio') html = await buildRelatorioScreen();
+    else if (id === 'dashboard') html = await buildDashboard();
+    else if (id === 'equipe') html = buildEquipeScreen();
+    else if (id === 'log') html = await buildLogScreen();
+    content.innerHTML = `<div class="screen active" id="screen-${id}">${html}</div>`;
+    startClock();
+  } catch (e) {
+    content.innerHTML = `<div class="screen active"><div class="empty-state"><div class="es-icon">⚠️</div><p>Erro ao carregar. Tente novamente.</p></div></div>`;
+    console.error(e);
+  }
+};
+
+// =============================================
+// TELA DE PONTO
+// =============================================
+async function buildPontoScreen() {
+  const recs = await getUserTodayRecords(currentUser.uid);
+  const tipos = recs.map(r => r.tipo);
+  const temEntrada = tipos.includes('entrada');
+  const temSaida = tipos.includes('saida');
+  const temIniInt = tipos.includes('inicio-intervalo');
+  const temFimInt = tipos.includes('fim-intervalo');
+  const emIntervalo = temIniInt && !temFimInt;
+
+  let statusIcon = '🌅', statusText = 'Aguardando entrada', statusSub = 'Registre sua chegada para começar';
+  if (temSaida) { statusIcon = '🌇'; statusText = 'Jornada encerrada'; statusSub = 'Boa noite! Até amanhã.'; }
+  else if (emIntervalo) { statusIcon = '☕'; statusText = 'Em intervalo'; statusSub = 'Descansando...'; }
+  else if (temEntrada) {
+    const horas = calcHorasLive(recs);
+    statusIcon = '💼'; statusText = 'Trabalhando';
+    statusSub = horas !== null ? `${fmtHoras(horas)} trabalhadas` : 'Jornada em andamento';
+  }
+
+  const btnEntrada = !temEntrada && !temSaida;
+  const btnIntervalo = temEntrada && !temSaida && !emIntervalo && !temIniInt;
+  const btnFimInt = emIntervalo;
+  const btnSaida = temEntrada && !temSaida && !emIntervalo;
+
+  const upsell = `
+    <div class="upsell-banner">
+      <div class="upsell-title">⚡ Notificações em tempo real</div>
+      <div class="upsell-text">Receba no Telegram cada batida de ponto da sua equipe — onde estiver.</div>
+      <button class="upsell-cta" onclick="showToast('Entre em contato para contratar o suporte anual! 📱')">Saiba mais</button>
+    </div>`;
+
+  return `
+    <div class="datetime-card">
+      <div class="dt-deco">Horário atual</div>
+      <div class="dt-time" id="clock">--:--:--</div>
+      <div class="dt-date" id="clock-date"></div>
+      <div class="geo-info" id="geo-status">📍 Obtendo localização...</div>
+    </div>
+    <div class="status-card">
+      <div class="status-icon" style="background:${temSaida ? '#fdecea' : emIntervalo ? '#fef3e8' : temEntrada ? '#eaf6f0' : '#f0f4f8'}">${statusIcon}</div>
+      <div>
+        <div class="status-text-main">${statusText}</div>
+        <div class="status-text-sub">${statusSub}</div>
+      </div>
+    </div>
+    <div class="ponto-grid">
+      <button class="btn-ponto entrada" onclick="registrarPonto('entrada')" ${!btnEntrada ? 'disabled' : ''}>
+        <span class="bp-icon">🌅</span>Registrar Entrada
+      </button>
+      <button class="btn-ponto intervalo" onclick="registrarPonto('inicio-intervalo')" ${!btnIntervalo ? 'disabled' : ''}>
+        <span class="bp-icon">☕</span>Início Intervalo
+      </button>
+      <button class="btn-ponto fim-int" onclick="registrarPonto('fim-intervalo')" ${!btnFimInt ? 'disabled' : ''}>
+        <span class="bp-icon">🔙</span>Fim Intervalo
+      </button>
+      <button class="btn-ponto saida" onclick="registrarPonto('saida')" ${!btnSaida ? 'disabled' : ''}>
+        <span class="bp-icon">🌇</span>Registrar Saída
+      </button>
+    </div>
+    ${currentProfile?.tipo === 'gerente' ? upsell : ''}`;
+}
+
+window.registrarPonto = async function(tipo) {
+  if (!geoCoords && tipo === 'entrada') {
+    showToast('⚠️ Aguardando localização...');
+    requestGeo();
+    setTimeout(() => registrarPonto(tipo), 2000);
+    return;
+  }
+  try {
+    await addDoc(collection(db, 'registros'), {
+      userId: currentUser.uid,
+      userName: currentProfile.nome,
+      tipo, data: getToday(),
+      timestamp: Date.now(),
+      geo: geoCoords || null,
+      endereco: geoAddress || null,
+      criadoEm: serverTimestamp()
+    });
+    const labels = { entrada: '✅ Entrada registrada!', 'inicio-intervalo': '☕ Intervalo iniciado!', 'fim-intervalo': '🔙 Retornou do intervalo!', saida: '🌇 Saída registrada!' };
+    showToast(labels[tipo] || '✅ Ponto registrado!');
+    setTimeout(() => showScreen('ponto'), 800);
+  } catch (e) {
+    showToast('⚠️ Erro ao registrar ponto.');
+    console.error(e);
+  }
+};
+
+// =============================================
+// HISTÓRICO
+// =============================================
+async function buildHistoricoScreen(uid) {
+  const snap = await getDocs(query(
+    collection(db, 'registros'), where('userId', '==', uid), orderBy('timestamp', 'desc')
+  ));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!recs.length) return `<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum registro ainda.</p></div>`;
+
+  const grouped = {};
+  recs.forEach(r => { if (!grouped[r.data]) grouped[r.data] = []; grouped[r.data].push(r); });
+
+  const tipoLabel = { entrada: '🌅 Entrada', 'inicio-intervalo': '☕ Intervalo iniciado', 'fim-intervalo': '🔙 Fim do intervalo', saida: '🌇 Saída' };
+  let html = `<div class="section-title">📅 Meu Histórico</div>`;
+
+  Object.entries(grouped).slice(0, 14).forEach(([data, list]) => {
+    const horas = calcHoras(list.slice().sort((a,b) => a.timestamp - b.timestamp));
+    html += `<div class="hist-day-label">${formatDate(data)}${horas !== null ? ` — ${fmtHoras(horas)}` : ''}</div>`;
+    list.forEach(r => {
+      html += `<div class="hist-entry">
+        <div class="hist-dot ${r.tipo}">
+          ${r.tipo === 'entrada' ? '🌅' : r.tipo === 'inicio-intervalo' ? '☕' : r.tipo === 'fim-intervalo' ? '🔙' : '🌇'}
+        </div>
+        <div>
+          <div class="hist-type">${tipoLabel[r.tipo] || r.tipo}</div>
+          <div class="hist-time">${formatTime(r.timestamp)}${r.endereco ? ` • ${r.endereco.substring(0,30)}` : ''}</div>
+        </div>
+      </div>`;
+    });
+  });
+  return html;
+}
+
+// =============================================
+// DASHBOARD (GERENTE)
+// =============================================
+async function buildDashboard() {
+  const hoje = getToday();
+  const snap = await getDocs(query(collection(db, 'registros'), where('data', '==', hoje)));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const usersSnap = await getDocs(query(collection(db, 'usuarios'), where('tipo', '==', 'funcionario')));
+  const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  let html = `<div class="section-title">📊 Painel de hoje</div>`;
+
+  if (!users.length) {
+    html += `<div class="alert-card info"><div class="alert-icon">💡</div><div class="alert-text"><strong>Nenhum funcionário cadastrado</strong><span>Vá em "Equipe" para cadastrar seus funcionários.</span></div></div>`;
+    return html;
+  }
+
+  const presentes = [], ausentes = [];
+  users.forEach(u => {
+    const userRecs = recs.filter(r => r.userId === u.id).sort((a,b) => a.timestamp - b.timestamp);
+    const temEntrada = userRecs.some(r => r.tipo === 'entrada');
+    const temSaida = userRecs.some(r => r.tipo === 'saida');
+    const emInt = userRecs.some(r => r.tipo === 'inicio-intervalo') && !userRecs.some(r => r.tipo === 'fim-intervalo');
+    if (temEntrada) presentes.push({ u, recs: userRecs, temSaida, emInt });
+    else ausentes.push(u);
+  });
+
+  html += `<div class="summary-card">
+    <div class="sum-item"><div class="sum-val">${presentes.length}</div><div class="sum-label">Presentes</div></div>
+    <div class="sum-item"><div class="sum-val">${ausentes.length}</div><div class="sum-label">Ausentes</div></div>
+    <div class="sum-item"><div class="sum-val">${users.length}</div><div class="sum-label">Total</div></div>
+  </div>`;
+
+  presentes.forEach(({ u, recs: ur, temSaida, emInt }) => {
+    const horas = temSaida ? calcHoras(ur) : calcHorasLive(ur);
+    const jornada = u.jornada || 8;
+    const extra = horas !== null && horas > jornada;
+    html += `<div class="func-card">
+      <div class="func-card-top">
+        <div class="func-avatar">${u.nome.charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="func-name">${u.nome}</div>
+          <div class="func-role">${temSaida ? 'Saiu' : emInt ? 'Em intervalo' : 'Trabalhando'}</div>
+        </div>
+      </div>
+      <div class="func-badges">
+        <span class="badge ${temSaida ? 'gray' : emInt ? 'warn' : 'ok'}">${temSaida ? '🌇 Encerrado' : emInt ? '☕ Intervalo' : '✅ Presente'}</span>
+        ${horas !== null ? `<span class="badge ${extra ? 'warn' : 'gray'}">${fmtHoras(horas)} ${extra ? '⚠️ extra' : ''}</span>` : ''}
+      </div>
+    </div>`;
+  });
+
+  if (ausentes.length) {
+    html += `<div class="section-title" style="margin-top:16px">⚠️ Ausentes hoje</div>`;
+    ausentes.forEach(u => {
+      html += `<div class="func-card">
+        <div class="func-card-top">
+          <div class="func-avatar" style="opacity:.5">${u.nome.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="func-name">${u.nome}</div>
+            <div class="func-role">Sem registro hoje</div>
+          </div>
+        </div>
+        <div class="func-badges"><span class="badge danger">❌ Ausente</span></div>
+      </div>`;
+    });
+  }
+  return html;
+}
+
+// =============================================
+// EQUIPE (GERENTE)
+// =============================================
+function buildEquipeScreen() {
+  return `
+    <div class="section-title">👥 Minha Equipe</div>
+    <button class="btn-primary" style="margin-bottom:16px" onclick="abrirCadastroFunc()">+ Cadastrar funcionário</button>
+    <div id="lista-func">Carregando...</div>
+    <script>carregarFuncionarios();<\/script>`;
+}
+
+window.carregarFuncionarios = async function() {
+  const el = document.getElementById('lista-func');
+  if (!el) return;
+  const snap = await getDocs(query(collection(db, 'usuarios'), where('tipo', '==', 'funcionario')));
+  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!users.length) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">👥</div><p>Nenhum funcionário cadastrado ainda.</p></div>`; return;
+  }
+  el.innerHTML = users.map(u => `
+    <div class="func-card">
+      <div class="func-card-top">
+        <div class="func-avatar">${u.nome.charAt(0).toUpperCase()}</div>
+        <div style="flex:1">
+          <div class="func-name">${u.nome}</div>
+          <div class="func-role">${u.email} • Jornada: ${u.jornada || 8}h</div>
+        </div>
+      </div>
+    </div>`).join('');
+};
+
+window.abrirCadastroFunc = function() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">👤 Novo Funcionário</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-error" id="func-err"></div>
+    <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" id="fn-nome" placeholder="Nome do funcionário"></div>
+    <div class="form-group"><label class="form-label">E-mail de acesso</label><input class="form-input" type="email" id="fn-email" placeholder="funcionario@email.com"></div>
+    <div class="form-group"><label class="form-label">Senha inicial</label><input class="form-input" type="password" id="fn-senha" placeholder="Mínimo 6 caracteres"></div>
+    <div class="form-group">
+      <label class="form-label">Jornada diária (horas)</label>
+      <select class="form-select" id="fn-jornada">
+        <option value="6">6 horas</option>
+        <option value="7">7 horas</option>
+        <option value="8" selected>8 horas</option>
+        <option value="9">9 horas</option>
+        <option value="10">10 horas</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="fn-btn" onclick="salvarFuncionario()">✅ Cadastrar funcionário</button>
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+window.salvarFuncionario = async function() {
+  const nome = document.getElementById('fn-nome').value.trim();
+  const email = document.getElementById('fn-email').value.trim();
+  const senha = document.getElementById('fn-senha').value;
+  const jornada = parseInt(document.getElementById('fn-jornada').value);
+  const err = document.getElementById('func-err');
+  const btn = document.getElementById('fn-btn');
+  if (!nome || !email || !senha) { err.textContent = '⚠️ Preencha todos os campos.'; err.style.display = 'block'; return; }
+  if (senha.length < 6) { err.textContent = '⚠️ Senha precisa ter pelo menos 6 caracteres.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Cadastrando...';
+  try {
+    const tempApp = initializeApp({ ...firebaseConfig }, 'temp-' + Date.now());
+    const tempAuth = getAuth(tempApp);
+    const cred = await createUserWithEmailAndPassword(tempAuth, email, senha);
+    await setDoc(doc(db, 'usuarios', cred.user.uid), {
+      nome, email, tipo: 'funcionario', jornada,
+      criadoPor: currentUser.uid, criadoEm: new Date().toISOString()
+    });
+    await signOut(tempAuth);
+    closeModal();
+    showToast(`✅ ${nome} cadastrado com sucesso!`);
+    setTimeout(() => showScreen('equipe'), 500);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '✅ Cadastrar funcionário';
+    err.textContent = '⚠️ ' + (e.message || 'Erro ao cadastrar.');
+    err.style.display = 'block';
+  }
+};
+
+window.closeModal = function() { const m = document.getElementById('modal-overlay'); if (m) m.remove(); };
+
+// =============================================
+// RELATÓRIO
+// =============================================
+async function buildRelatorioScreen() {
+  let uid = currentUser.uid;
+  let usersOptions = '';
+  if (currentProfile.tipo === 'gerente') {
+    const snap = await getDocs(query(collection(db, 'usuarios')));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    usersOptions = users.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+  }
+
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const now = new Date();
+  const mesOpts = meses.map((m, i) => `<option value="${i}" ${i === now.getMonth() ? 'selected' : ''}>${m}</option>`).join('');
+  const anoOpts = [now.getFullYear(), now.getFullYear()-1].map(a => `<option value="${a}" ${a === now.getFullYear() ? 'selected' : ''}>${a}</option>`).join('');
+
+  return `
+    <div class="section-title">📋 Relatório de Ponto</div>
+    ${currentProfile.tipo === 'gerente' ? `
+      <div class="form-group">
+        <label class="form-label">Funcionário</label>
+        <select class="form-select" id="rel-user">${usersOptions}</select>
+      </div>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="form-group"><label class="form-label">Mês</label><select class="form-select" id="rel-mes">${mesOpts}</select></div>
+      <div class="form-group"><label class="form-label">Ano</label><select class="form-select" id="rel-ano">${anoOpts}</select></div>
+    </div>
+    <button class="btn-primary" onclick="gerarRelatorio()">📊 Gerar Relatório</button>
+    <div id="rel-result" style="margin-top:16px"></div>`;
+}
+
+window.gerarRelatorio = async function() {
+  const mes = parseInt(document.getElementById('rel-mes').value);
+  const ano = parseInt(document.getElementById('rel-ano').value);
+  const uid = currentProfile.tipo === 'gerente'
+    ? (document.getElementById('rel-user')?.value || currentUser.uid)
+    : currentUser.uid;
+  const el = document.getElementById('rel-result');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">⏳ Carregando...</div>';
+
+  const inicio = new Date(ano, mes, 1).toISOString().split('T')[0];
+  const fim = new Date(ano, mes + 1, 0).toISOString().split('T')[0];
+  const snap = await getDocs(query(
+    collection(db, 'registros'),
+    where('userId', '==', uid),
+    where('data', '>=', inicio),
+    where('data', '<=', fim),
+    orderBy('data', 'asc'), orderBy('timestamp', 'asc')
+  ));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const userSnap = await getDoc(doc(db, 'usuarios', uid));
+  const user = userSnap.data();
+  const jornada = user?.jornada || 8;
+
+  const grouped = {};
+  recs.forEach(r => { if (!grouped[r.data]) grouped[r.data] = []; grouped[r.data].push(r); });
+
+  let totalHoras = 0, totalDias = 0, totalExtra = 0;
+  const dias = Object.entries(grouped).map(([data, list]) => {
+    const h = calcHoras(list);
+    if (h !== null) { totalHoras += h; totalDias++; if (h > jornada) totalExtra += (h - jornada); }
+    return { data, h };
+  });
+
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  el.innerHTML = `
+    <div class="rel-card">
+      <div class="rel-header">
+        <div>
+          <div class="rel-name">${user?.nome || 'Funcionário'}</div>
+          <div class="rel-period">${meses[mes]} ${ano} • Jornada: ${jornada}h/dia</div>
+        </div>
+        <button class="btn-rel print" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+      </div>
+      <div class="rel-stats">
+        <div class="rel-stat"><div class="rel-stat-val">${totalDias}</div><div class="rel-stat-label">Dias trab.</div></div>
+        <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalHoras)}</div><div class="rel-stat-label">Horas trab.</div></div>
+        <div class="rel-stat"><div class="rel-stat-val">${fmtHoras(totalExtra)}</div><div class="rel-stat-label">Horas extra</div></div>
+      </div>
+    </div>
+    ${dias.map(({ data, h }) => `
+      <div class="hist-entry">
+        <div class="hist-dot entrada">📅</div>
+        <div>
+          <div class="hist-type">${formatDate(data)}</div>
+          <div class="hist-time">${h !== null ? fmtHoras(h) + (h > jornada ? ' ⚠️ extra' : '') : 'Incompleto'}</div>
+        </div>
+      </div>`).join('')}
+    ${!dias.length ? `<div class="empty-state"><div class="es-icon">📋</div><p>Nenhum registro neste período.</p></div>` : ''}`;
+};
+
+window.imprimirRelatorio = function() { window.print(); };
+
+// =============================================
+// LOG
+// =============================================
+async function buildLogScreen() {
+  const snap = await getDocs(query(collection(db, 'auditLog'), orderBy('criadoEm', 'desc')));
+  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!logs.length) return `<div class="empty-state"><div class="es-icon">📝</div><p>Nenhum registro no log.</p></div>`;
+  let html = `<div class="section-title">📝 Log de Atividades</div>`;
+  logs.slice(0, 50).forEach(l => {
+    html += `<div class="log-entry">
+      <div class="log-who">${l.quem || 'Sistema'}</div>
+      <div class="log-what">${l.acao || l.mensagem || JSON.stringify(l)}</div>
+      <div class="log-when">${l.quando ? new Date(l.quando).toLocaleString('pt-BR') : ''}</div>
+    </div>`;
+  });
+  return html;
+}
+
+// =============================================
+// CLOCK
+// =============================================
+function startClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  function tick() {
+    const cl = document.getElementById('clock');
+    const cd = document.getElementById('clock-date');
+    if (!cl) { clearInterval(clockInterval); return; }
+    const now = new Date();
+    cl.textContent = now.toLocaleTimeString('pt-BR');
+    if (cd) cd.textContent = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const geo = document.getElementById('geo-status');
+    if (geo) geo.textContent = geoAddress ? '📍 ' + geoAddress : (geoCoords ? `📍 ${geoCoords.lat}, ${geoCoords.lng}` : '📍 Obtendo localização...');
+  }
+  tick(); clockInterval = setInterval(tick, 1000);
+}
+
+// =============================================
+// NOTIFICAÇÕES
+// =============================================
+let notifPermission = false;
+async function requestNotifPermission() {
+  if ('Notification' in window) {
+    const p = await Notification.requestPermission();
+    notifPermission = p === 'granted';
+  }
+}
+
+// =============================================
+// INIT — AUTH STATE
+// =============================================
+renderLoading();
+requestGeo();
+
+onAuthStateChanged(auth, async user => {
+  if (clockInterval) clearInterval(clockInterval);
+  if (user) {
+    currentUser = user;
+    await loadBizConfig();
+    const profileSnap = await getDoc(doc(db, 'usuarios', user.uid));
+    if (profileSnap.exists()) {
+      currentProfile = profileSnap.data();
+      renderApp();
+    } else {
+      await signOut(auth);
+    }
+  } else {
+    currentUser = null; currentProfile = null;
+    await loadBizConfig();
+    const onboarded = await checkOnboarding();
+    if (!onboarded) { onboardStep = 1; renderOnboarding(); }
+    else renderLogin();
+  }
+});
+</script>
+</body>
+</html>
