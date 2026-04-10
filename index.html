@@ -479,11 +479,20 @@ body {
 }
 .brand-footer span { color: var(--gold); font-weight: 700; }
 
-#print-area { display: none; }
+#print-area { display:none; }
 @media print {
-  * { visibility: hidden; margin: 0; padding: 0; box-shadow: none !important; }
-  #print-area, #print-area * { visibility: visible; }
-  #print-area { display: block !important; position: fixed; top: 0; left: 0; width: 210mm; min-height: 297mm; background: #fff; padding: 12mm 14mm; font-family: Arial, sans-serif; }
+  * { visibility:hidden; margin:0; padding:0; box-shadow:none !important; }
+  #print-area, #print-area * { visibility:visible; }
+  #print-area {
+    display:block !important;
+    position:fixed;
+    top:0; left:0;
+    width:210mm;
+    min-height:297mm;
+    background:#fff;
+    padding:12mm 14mm;
+    font-family:Arial,sans-serif;
+  }
 }
 </style>
 </head>
@@ -1517,7 +1526,7 @@ window.imprimirRelatorioCompleto = async function(uid, mes, ano) {
 
   const html = buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, periodoInicio, periodoFim, jornada);
   document.getElementById('print-area').innerHTML = html;
-  window.print();
+  setTimeout(() => window.print(), 300);
 };
 
 window.imprimirRelatorio = function() { window.print(); };
@@ -1877,7 +1886,6 @@ function iniciarListenerGerente() {
 // IMPRESSÃO DE PONTO
 // =============================================
 window.printRelatorio = async function(uid, mesOffset=0) {
-  showToast('⏳ Gerando PDF...');
   const profSnap = await getDoc(doc(db, 'usuarios', uid));
   const prof = profSnap.exists() ? profSnap.data() : { nome: 'Funcionário', jornada: 8 };
   const configSnap = await getDoc(doc(db, 'config', 'negocio'));
@@ -1952,7 +1960,7 @@ window.printRelatorio = async function(uid, mesOffset=0) {
     </div>
     <div class="rodape">Gerado em ${new Date().toLocaleString('pt-BR')} · ArranjoPonto · ArranjaTech</div>
   </div>`;
-  window.print();
+  setTimeout(() => window.print(), 300);
 };
 
 // =============================================
