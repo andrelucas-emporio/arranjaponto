@@ -1516,12 +1516,8 @@ window.imprimirRelatorioCompleto = async function(uid, mes, ano) {
   }
 
   const html = buildFolhaPontoHTML(prof, rows, totalHoras, totalExtras, diasTrab, periodoInicio, periodoFim, jornada);
-  const printWin = window.open('', '_blank', 'width=800,height=600');
-  if (!printWin) { showToast('⚠️ Permita popups para gerar o PDF.'); return; }
-  printWin.document.write('<html><head><title>Folha de Ponto</title></head><body>' + html + '</body></html>');
-  printWin.document.close();
-  printWin.focus();
-  setTimeout(() => { printWin.print(); }, 800);
+  document.getElementById('print-area').innerHTML = html;
+  window.print();
 };
 
 window.imprimirRelatorio = function() { window.print(); };
@@ -1956,12 +1952,7 @@ window.printRelatorio = async function(uid, mesOffset=0) {
     </div>
     <div class="rodape">Gerado em ${new Date().toLocaleString('pt-BR')} · ArranjoPonto · ArranjaTech</div>
   </div>`;
-  const printWin = window.open('', '_blank', 'width=800,height=600');
-  if (!printWin) { showToast('⚠️ Permita popups para gerar o PDF.'); return; }
-  printWin.document.write('<html><head><title>Folha de Ponto</title></head><body>' + document.getElementById('print-area').innerHTML + '</body></html>');
-  printWin.document.close();
-  printWin.focus();
-  setTimeout(() => { printWin.print(); }, 800);
+  window.print();
 };
 
 // =============================================
