@@ -495,7 +495,7 @@ body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, orderBy, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // =============================================
 // CONFIGURAÇÃO FIREBASE — SUBSTITUIR POR CLIENTE
@@ -579,10 +579,9 @@ async function getUserTodayRecords(uid) {
   const snap = await getDocs(query(
     collection(db, 'registros'),
     where('userId', '==', uid),
-    where('data', '==', getToday()),
-    orderBy('timestamp', 'asc')
+    where('data', '==', getToday())
   ));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.timestamp - b.timestamp);
 }
 
 async function loadBizConfig() {
@@ -1018,9 +1017,9 @@ window.registrarPonto = async function(tipo) {
 // =============================================
 async function buildHistoricoScreen(uid) {
   const snap = await getDocs(query(
-    collection(db, 'registros'), where('userId', '==', uid), orderBy('timestamp', 'desc')
+    collection(db, 'registros'), where('userId', '==', uid)
   ));
-  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.timestamp - a.timestamp);
   if (!recs.length) return `<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum registro ainda.</p></div>`;
 
   const grouped = {};
@@ -1255,10 +1254,9 @@ window.gerarRelatorio = async function() {
     collection(db, 'registros'),
     where('userId', '==', uid),
     where('data', '>=', inicio),
-    where('data', '<=', fim),
-    orderBy('data', 'asc'), orderBy('timestamp', 'asc')
+    where('data', '<=', fim)
   ));
-  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.data.localeCompare(b.data) || a.timestamp - b.timestamp);
   const userSnap = await getDoc(doc(db, 'usuarios', uid));
   const user = userSnap.data();
   const jornada = user?.jornada || 8;
@@ -1306,8 +1304,8 @@ window.imprimirRelatorio = function() { window.print(); };
 // LOG
 // =============================================
 async function buildLogScreen() {
-  const snap = await getDocs(query(collection(db, 'auditLog'), orderBy('criadoEm', 'desc')));
-  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await getDocs(query(collection(db, 'auditLog')));
+  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.quando) - new Date(a.quando));
   if (!logs.length) return `<div class="empty-state"><div class="es-icon">📝</div><p>Nenhum registro no log.</p></div>`;
   let html = `<div class="section-title">📝 Log de Atividades</div>`;
   logs.slice(0, 50).forEach(l => {
