@@ -1789,6 +1789,11 @@ window.openFuncDetail = async function(uid) {
       <button class="btn-rel" style="background:#eaf6f0;border:1.5px solid #a8d5bc;color:var(--green);flex:1" onclick="abrirFerias('${uid}','${user.nome}')">🏖️ Férias</button>
       <button class="btn-rel" style="background:#fef8ea;border:1.5px solid var(--gold);color:var(--gold);flex:1" onclick="abrirJustificativa('${uid}','${user.nome}')">📝 Justificar Falta</button>
     </div>
+    <div style="margin-bottom:16px">
+      <button class="btn-rel" style="width:100%;${user.status==='inativo'?'background:#eaf6f0;border:1.5px solid #a8d5bc;color:var(--green)':'background:#fdecea;border:1.5px solid #f5b4ae;color:var(--danger)'}" onclick="toggleStatus('${uid}','${user.status||'ativo'}')">
+        ${user.status==='inativo'?'🔓 Ativar funcionário':'🔒 Inativar funcionário'}
+      </button>
+    </div>
     <div class="section-title" style="margin-bottom:10px">📍 Registros de Hoje</div>
     ${recs.length === 0
       ? '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px">Nenhum registro hoje.</p>'
@@ -1803,6 +1808,14 @@ window.openFuncDetail = async function(uid) {
         </div>`).join('')}
   </div>`;
   document.body.appendChild(overlay);
+};
+
+window.toggleStatus = async function(uid, statusAtual) {
+  const novo = statusAtual === 'inativo' ? 'ativo' : 'inativo';
+  await updateDoc(doc(db, 'usuarios', uid), { status: novo });
+  closeModal();
+  showToast(`✅ Funcionário ${novo === 'ativo' ? 'ativado' : 'inativado'}!`);
+  showScreen(currentScreen);
 };
 
 // =============================================
