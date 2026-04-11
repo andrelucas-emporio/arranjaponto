@@ -503,7 +503,7 @@ body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // =============================================
@@ -2009,22 +2009,28 @@ function renderTrocarSenha() {
           Por segurança, crie uma senha pessoal antes de continuar.
         </div>
         <div class="form-error" id="ts-err"></div>
-        <div class="fi"><label class="fl">Nova senha</label><input class="form-input" type="password" id="ts-nova" placeholder="Mínimo 6 caracteres"></div>
+        <div class="fi"><label class="fl">Senha atual (temporária)</label><input class="form-input" type="password" id="ts-atual" placeholder="Digite a senha que você recebeu"></div>
+        <div class="fi" style="margin-top:12px"><label class="fl">Nova senha</label><input class="form-input" type="password" id="ts-nova" placeholder="Mínimo 6 caracteres"></div>
         <div class="fi" style="margin-top:12px"><label class="fl">Confirmar nova senha</label><input class="form-input" type="password" id="ts-conf" placeholder="Repita a nova senha"></div>
         <button class="btn-login" style="margin-top:16px" id="btn-ts" onclick="salvarNovaSenha()">✅ Salvar nova senha</button>
+        <button onclick="signOut(auth)" style="width:100%;margin-top:10px;padding:12px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px">↩ Voltar ao login</button>
       </div>
     </div>`;
 }
 
 window.salvarNovaSenha = async function() {
+  const atual = document.getElementById('ts-atual').value;
   const nova = document.getElementById('ts-nova').value;
   const conf = document.getElementById('ts-conf').value;
   const err = document.getElementById('ts-err');
   const btn = document.getElementById('btn-ts');
+  if (!atual) { err.textContent='⚠️ Digite sua senha atual.'; err.style.display='block'; return; }
   if (nova.length < 6) { err.textContent='⚠️ A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return; }
   if (nova !== conf) { err.textContent='⚠️ As senhas não coincidem.'; err.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Salvando...';
   try {
+    const credential = EmailAuthProvider.credential(currentUser.email, atual);
+    await reauthenticateWithCredential(currentUser, credential);
     await updatePassword(currentUser, nova);
     await updateDoc(doc(db,'usuarios',currentUser.uid), { senhaTemporaria: false });
     currentProfile.senhaTemporaria = false;
@@ -2032,8 +2038,13 @@ window.salvarNovaSenha = async function() {
     renderApp();
   } catch(e) {
     btn.disabled=false; btn.textContent='✅ Salvar nova senha';
-    err.textContent='⚠️ Erro ao salvar. Tente novamente.';
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      err.textContent='⚠️ Senha atual incorreta.';
+    } else {
+      err.textContent='⚠️ Erro ao salvar. Tente novamente.';
+    }
     err.style.display='block';
+    console.error(e);
   }
 };
 </script>
