@@ -503,7 +503,7 @@ body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // =============================================
@@ -2025,7 +2025,7 @@ window.salvarNovaSenha = async function() {
   if (nova !== conf) { err.textContent='⚠️ As senhas não coincidem.'; err.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Salvando...';
   try {
-    await currentUser.updatePassword(nova);
+    await updatePassword(currentUser, nova);
     await updateDoc(doc(db,'usuarios',currentUser.uid), { senhaTemporaria: false });
     currentProfile.senhaTemporaria = false;
     showToast('✅ Senha criada com sucesso!');
